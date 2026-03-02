@@ -1,0 +1,192 @@
+---
+title: 'rbx-tsx vs roblox-ts'
+description: 'Detailed comparison between rbx-tsx and roblox-ts compilers'
+---
+
+## Overview
+
+[roblox-ts](https://roblox-ts.com/) is the established TypeScript-to-Luau compiler for Roblox. rbx-tsx takes a different approach with a focus on clean output, preserved type annotations, and built-in React/JSX support without runtime dependencies.
+
+Both compilers enable you to write TypeScript for Roblox, but they differ in architecture, output format, ecosystem, and setup requirements.
+
+## Comparison Table
+
+| Feature | rbx-tsx | roblox-ts |
+|---------|---------|-----------|
+| **Runtime dependency** | None — compiles to standalone Luau | Requires `@rbxts/compiler-types` runtime |
+| **Luau type output** | Full Luau type annotations preserved from TypeScript — interfaces, generics, unions, optionals | Types are erased; output is untyped Luau |
+| **React / JSX** | Built-in. JSX compiles directly to `React.createElement` for react-lua | Requires separate `@rbxts/react` type packages and manual `tsconfig.json` JSX setup |
+| **HTML elements** | Write `<div>`, `<button>`, `<input>` — mapped to Roblox GUI classes automatically | Must use Roblox class names directly |
+| **JS API coverage** | `console`, `Math`, `JSON`, `Array`, `String`, `Object`, `RegExp`, `setTimeout` — compiled inline | Requires runtime package for JS API polyfills |
+| **CSS support** | Companion `rbx-css` compiler with `--css` flag | Not built-in |
+| **Output readability** | Clean, 1:1 Luau with types — designed to be read and debugged | Readable but includes runtime calls, no types |
+| **Labeled statements** | Supported via flag variable pattern | Not supported |
+| **RegExp** | Compiles to `luau-regexp` calls | Not supported |
+| **Ecosystem** | Rojo + Wally | Rojo + npm (`@rbxts/*` packages) |
+| **Setup** | `npm install rbx-tsx` — that's it | Requires `@rbxts/*` type packages, compiler config, and matching package versions |
+
+## Key Differences
+
+### Runtime Dependencies
+
+**rbx-tsx** compiles to completely standalone Luau code. All JavaScript API polyfills (like array methods, string utilities, etc.) are inlined directly into your compiled output only when used.
+
+**roblox-ts** requires the `@rbxts/compiler-types` runtime package to be installed in your Roblox project, which provides the polyfills and helper functions at runtime.
+
+<Info>
+rbx-tsx's zero-dependency approach means your compiled code has no external requirements and can run in any Roblox environment without installing additional packages.
+</Info>
+
+### Type Preservation
+
+**rbx-tsx** preserves full TypeScript type information in the compiled Luau output, including:
+- Interface definitions → Luau type definitions
+- Generic types
+- Union and intersection types
+- Optional properties
+- Function signatures
+
+**roblox-ts** erases all type information during compilation, producing untyped Luau code. This is a design choice that simplifies the compiler but means you lose type safety in the output.
+
+<Info>
+Type-preserved output from rbx-tsx makes the compiled Luau code self-documenting and enables better IDE support when working directly with the Luau files.
+</Info>
+
+### React and JSX Support
+
+**rbx-tsx** has first-class React and JSX support built into the compiler:
+```tsx
+export default function Button({ label, onClick }: ButtonProps) {
+  return <button onClick={onClick}>{label}</button>;
+}
+```
+
+Compiles directly to `React.createElement` calls for [react-lua](https://github.com/jsdotlua/react-lua) without any configuration.
+
+**roblox-ts** supports JSX through the standard TypeScript compiler with manual `tsconfig.json` setup. You need to install `@rbxts/react` and related type packages, then configure the JSX factory.
+
+### HTML Element Mapping
+
+**rbx-tsx** lets you write familiar HTML elements that automatically map to Roblox GUI classes:
+```tsx
+<div className="container">
+  <h1>Title</h1>
+  <input onChange={handleChange} />
+  <button onClick={handleClick}>Submit</button>
+</div>
+```
+
+**roblox-ts** requires you to use Roblox class names directly (e.g., `Frame`, `TextLabel`, `TextBox`, `TextButton`) in your JSX.
+
+<Info>
+HTML element mapping in rbx-tsx reduces the learning curve for web developers transitioning to Roblox development.
+</Info>
+
+### JavaScript API Coverage
+
+Both compilers provide JavaScript API compatibility, but with different approaches:
+
+**rbx-tsx** inlines polyfills directly into your compiled output only when used:
+- `console.log()` → `print()`
+- `Math.*` → `math.*`
+- `JSON.stringify()` → `HttpService:JSONEncode()`
+- Array methods (`map`, `filter`, `reduce`, etc.) → auto-generated helper functions
+- `setTimeout()` → `task.delay()`
+- RegExp → `luau-regexp` library calls
+
+**roblox-ts** provides these features through runtime packages that you install and import. This keeps the compiler simpler but adds runtime dependencies.
+
+### Output Readability
+
+**rbx-tsx** produces clean, human-readable Luau with full type annotations:
+```lua
+type CounterProps = {
+    label: string,
+    initialCount: number?,
+}
+
+local function Counter(props: CounterProps)
+    local label = props.label
+    local initialCount = if props.initialCount ~= nil then props.initialCount else 0
+    -- ...
+end
+```
+
+**roblox-ts** produces readable Luau but without type annotations and with references to runtime helper functions.
+
+### Advanced Features
+
+**Both compilers support:**
+- async/await
+- Generators
+- Decorators
+- Optional chaining
+- Nullish coalescing
+
+**rbx-tsx additionally supports:**
+- Labeled break statements (via flag variable pattern)
+- RegExp literals and operations
+- CSS modules (via companion `rbx-css` compiler)
+
+**roblox-ts** handles async/await and generators through installed runtime packages, while rbx-tsx inlines the necessary polyfills directly into the output.
+
+### Ecosystem and Packages
+
+**rbx-tsx** uses the standard Roblox toolchain:
+- Rojo for project structure
+- Wally for package management
+- Standard Luau packages from the Roblox ecosystem
+
+**roblox-ts** has its own ecosystem:
+- Rojo for project structure
+- npm for package management
+- Extensive `@rbxts/*` package collection with TypeScript type definitions
+
+<Info>
+roblox-ts has a more mature package ecosystem with TypeScript-specific packages, while rbx-tsx leverages the standard Luau package ecosystem.
+</Info>
+
+### Setup Complexity
+
+**rbx-tsx** has minimal setup:
+```bash
+npm install rbx-tsx
+rbx-tsx init my-app
+```
+
+**roblox-ts** requires more initial configuration:
+- Install the compiler
+- Install `@rbxts/*` type packages for libraries you want to use
+- Configure `tsconfig.json`
+- Ensure package versions are compatible
+- Set up JSX configuration if using React
+
+## When to Use Each
+
+### Choose rbx-tsx if you want to:
+- Write React components with minimal setup
+- Preserve type information in your compiled Luau output
+- Avoid runtime dependencies in your Roblox project
+- Use HTML-like element syntax (`<div>`, `<button>`, etc.)
+- Get clean, debuggable Luau output
+- Use CSS modules with the companion compiler
+- Work with RegExp patterns
+
+### Choose roblox-ts if you:
+- Need access to the extensive `@rbxts/*` package ecosystem
+- Prefer npm-based package management
+- Are working on an existing roblox-ts project
+- Want the most battle-tested TypeScript-to-Luau compiler
+- Don't need type preservation in the output
+
+## Migration Considerations
+
+If you're considering switching between compilers, note that:
+
+- TypeScript code is largely compatible between the two
+- Package dependencies will need to be converted (npm `@rbxts/*` packages ↔ Wally packages)
+- JSX may need adjustments if you're using HTML element names
+- Import paths may differ based on package resolution strategies
+- Runtime dependencies need to be removed/added depending on direction
+
+Both compilers are actively maintained and suitable for production Roblox development. The choice depends on your specific requirements around output format, dependencies, and ecosystem preferences.

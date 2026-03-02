@@ -1,0 +1,277 @@
+---
+title: rbx-tsx compile
+description: Compile TSX/TS files to Luau
+---
+
+Compile TypeScript and TSX files to Luau modules for Roblox.
+
+## Usage
+
+```bash
+rbx-tsx compile <input> [options]
+```
+
+### Arguments
+
+<ParamField path="input" type="string" required>
+  Input file or directory to compile. Can be:
+  - Single file: `App.tsx`
+  - Directory: `src/` (recursively compiles all source files)
+</ParamField>
+
+## Options
+
+<ParamField path="-o, --output" type="string">
+  Output file or directory
+  
+  **Default**: stdout (for single files) or in-place compilation (for directories)
+  
+  **Examples**:
+  - Single file: `-o out/App.luau`
+  - Directory: `-o out/`
+</ParamField>
+
+<ParamField path="--css" type="boolean">
+  Also compile `.css` files via rbx-css
+  
+  **Default**: `false`
+  
+  When enabled:
+  - Compiles CSS files to `.style.luau` using `rbx-css compile`
+  - Generates CSS manifest files (`.style.manifest.json`)
+  - Creates `css.d.ts` for TypeScript CSS import support
+  - Merges all CSS manifests for type-safe class name completion
+  
+  <Warning>
+    Requires [rbx-css](https://github.com/richie0866/rbx-css) to be installed and available in PATH.
+  </Warning>
+</ParamField>
+
+<ParamField path="--react-path" type="string">
+  Require path for react-lua
+  
+  **Default**: `ReplicatedStorage.Packages.React`
+  
+  This is used to generate the correct `require()` path in compiled Luau:
+  ```lua
+  local React = require(game:GetService("ReplicatedStorage").Packages.React)
+  ```
+</ParamField>
+
+<ParamField path="--react-roblox-path" type="string">
+  Require path for react-roblox
+  
+  **Default**: `ReplicatedStorage.Packages.ReactRoblox`
+  
+  Used for ReactRoblox-specific imports like `createRoot` and `createPortal`:
+  ```lua
+  local ReactRoblox = require(game:GetService("ReplicatedStorage").Packages.ReactRoblox)
+  ```
+</ParamField>
+
+<ParamField path="--strict" type="boolean">
+  Treat warnings as errors
+  
+  **Default**: `false`
+  
+  When enabled, the compiler will exit with code 1 if any warnings are emitted. Useful in CI/CD pipelines.
+</ParamField>
+
+<ParamField path="--sourcemap" type="boolean">
+  Emit source map comments
+  
+  **Default**: `false`
+  
+  Adds source map comments to the compiled Luau for debugging:
+  ```lua
+  --# sourcemap: App.tsx:10:5
+  ```
+</ParamField>
+
+<ParamField path="--warn" type="string">
+  Warning level
+  
+  **Default**: `all`
+  
+  **Options**:
+  - `all` - Show all warnings
+  - `unsupported` - Show only unsupported feature warnings
+  - `none` - Suppress all warnings
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+
+```bash Single file to stdout
+rbx-tsx compile App.tsx
+```
+
+```bash Single file to file
+rbx-tsx compile App.tsx -o App.luau
+```
+
+```bash Directory compilation
+rbx-tsx compile src/ -o out/
+```
+
+```bash With CSS compilation
+rbx-tsx compile src/ -o out/ --css
+```
+
+```bash Custom React paths
+rbx-tsx compile src/ -o out/ \
+  --react-path "game.Shared.React" \
+  --react-roblox-path "game.Shared.ReactRoblox"
+```
+
+```bash Strict mode for CI
+rbx-tsx compile src/ -o out/ --strict --warn all
+```
+
+```bash With source maps
+rbx-tsx compile src/ -o out/ --sourcemap
+```
+
+</CodeGroup>
+
+## Output
+
+### Single File
+
+When compiling a single file:
+
+```bash
+rbx-tsx compile Counter.tsx -o Counter.luau
+```
+
+**Console output**:
+```
+Written to Counter.luau
+```
+
+### Directory
+
+When compiling a directory:
+
+```bash
+rbx-tsx compile src/ -o out/
+```
+
+**Console output**:
+```
+Rojo: default.project.json
+client/App.tsx -> out/client/App.luau
+client/index.client.tsx -> out/client/init.client.luau
+server/index.server.ts -> out/server/init.server.luau
+shared/utils.ts -> out/shared/utils.luau
+```
+
+### With CSS
+
+When using `--css`:
+
+```bash
+rbx-tsx compile src/ -o out/ --css
+```
+
+**Console output**:
+```
+Rojo: default.project.json
+Generated css.d.ts for CSS import support
+CSS: components/Card.css -> out/components/Card.style.luau
+components/Card.tsx -> out/components/Card.luau
+components/App.tsx -> out/components/App.luau
+```
+
+### Warnings and Errors
+
+Warnings are written to stderr:
+
+```
+[WARN] Counter.tsx:12:5: Using 'as' type assertion
+[ERROR] App.tsx:24:10: Cannot use 'with' statement
+```
+
+With `--strict`, warnings cause the process to exit with code 1.
+
+## Files Created
+
+The `compile` command creates:
+
+<AccordionGroup>
+  <Accordion title="Luau files (.luau)">
+    Compiled Luau modules for each TypeScript source file.
+    
+    **Naming**:
+    - `Component.tsx` → `Component.luau`
+    - `index.tsx` → `init.luau`
+    - `utils.ts` → `utils.luau`
+  </Accordion>
+  
+  <Accordion title="CSS modules (.style.luau)" icon="paintbrush">
+    When using `--css`, CSS files are compiled to Luau style modules:
+    - `Card.css` → `Card.style.luau`
+    - Contains `createStyleSheet()` function
+  </Accordion>
+  
+  <Accordion title="CSS manifests (.style.manifest.json)" icon="file-code">
+    When using `--css`, manifest files are generated for each CSS file:
+    - `Card.css` → `Card.style.manifest.json`
+    - Contains class name mappings for IntelliSense
+  </Accordion>
+  
+  <Accordion title="CSS type definitions (css.d.ts)" icon="typescript">
+    When using `--css`, a type definition file is created once per project:
+    ```typescript
+    declare module "*.css" {
+      const createStyleSheet: () => Instance;
+      export default createStyleSheet;
+    }
+    ```
+    This enables `import styles from "./Card.css"` in TypeScript.
+  </Accordion>
+</AccordionGroup>
+
+## Rojo Project Detection
+
+The compiler automatically searches parent directories for `default.project.json` to:
+
+1. **Build path aliases** - Maps source directories to Roblox instance paths
+2. **Resolve cross-boundary imports** - Handles imports between different Rojo tree nodes
+
+**Example Rojo project**:
+```json
+{
+  "name": "my-game",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Shared": { "$path": "out/shared" },
+      "Packages": { "$path": "Packages" }
+    }
+  }
+}
+```
+
+Imports from `shared/` will resolve to:
+```lua
+local Utils = require(game:GetService("ReplicatedStorage").Shared.Utils)
+```
+
+## Performance
+
+Compilation speed depends on:
+- Number of files
+- File size and complexity
+- Whether CSS compilation is enabled
+- Disk I/O speed
+
+Typical performance:
+- **Small project** (10-50 files): ~100-500ms
+- **Medium project** (100-500 files): ~1-5s
+- **Large project** (1000+ files): ~10-30s
+
+<Tip>
+Use [`watch`](/cli/watch) mode during development for instant recompilation on file changes.
+</Tip>

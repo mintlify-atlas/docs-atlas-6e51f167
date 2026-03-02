@@ -1,0 +1,379 @@
+---
+title: JavaScript API Transforms
+description: JavaScript standard library APIs compiled to Luau equivalents
+---
+
+rbx-tsx transforms JavaScript standard library calls to their Luau equivalents, generating helper functions when needed.
+
+## Console API
+
+| TypeScript | Luau |
+|------------|------|
+| `console.log()` | `print()` |
+| `console.warn()` | `warn()` |
+| `console.error()` | `warn()` |
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    console.log("Hello, world!");
+    console.warn("Warning message");
+    console.error("Error:", err);
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    print("Hello, world!")
+    warn("Warning message")
+    warn("Error:", err)
+    ```
+  </Tab>
+</Tabs>
+
+## Math API
+
+All `Math` methods map to Luau's `math` library:
+
+| TypeScript | Luau |
+|------------|------|
+| `Math.floor()` | `math.floor()` |
+| `Math.ceil()` | `math.ceil()` |
+| `Math.round()` | `math.round()` |
+| `Math.abs()` | `math.abs()` |
+| `Math.sqrt()` | `math.sqrt()` |
+| `Math.PI` | `math.pi` |
+| `Math.max()` / `Math.min()` | `math.max()` / `math.min()` |
+| `Math.random()` | `math.random()` |
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    const radius = 5;
+    const area = Math.PI * Math.pow(radius, 2);
+    const rounded = Math.floor(area);
+    const random = Math.random();
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    local radius = 5
+    local area = math.pi * math.pow(radius, 2)
+    local rounded = math.floor(area)
+    local random = math.random()
+    ```
+  </Tab>
+</Tabs>
+
+## JSON API
+
+JSON methods compile to Roblox's `HttpService`:
+
+| TypeScript | Luau |
+|------------|------|
+| `JSON.stringify()` | `HttpService:JSONEncode()` |
+| `JSON.parse()` | `HttpService:JSONDecode()` |
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    const data = { name: "Player", score: 100 };
+    const json = JSON.stringify(data);
+    const parsed = JSON.parse(json);
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    local HttpService = game:GetService("HttpService")
+
+    local data = { name = "Player", score = 100 }
+    local json = HttpService:JSONEncode(data)
+    local parsed = HttpService:JSONDecode(json)
+    ```
+  </Tab>
+</Tabs>
+
+## Type Conversion
+
+| TypeScript | Luau |
+|------------|------|
+| `parseInt()` | `tonumber()` |
+| `parseFloat()` | `tonumber()` |
+| `String()` | `tostring()` |
+| `Number()` | `tonumber()` |
+
+```ts
+const num = parseInt("42", 10);
+const str = String(123);
+// Compiles to:
+local num = tonumber("42")
+local str = tostring(123)
+```
+
+## Timers
+
+| TypeScript | Luau |
+|------------|------|
+| `setTimeout(fn, ms)` | `task.delay(ms / 1000, fn)` |
+| `clearTimeout(id)` | `task.cancel(id)` |
+| `setInterval(fn, ms)` | Custom implementation |
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    const id = setTimeout(() => {
+      console.log("Delayed");
+    }, 1000);
+
+    clearTimeout(id);
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    local id = task.delay(1, function()
+        print("Delayed")
+    end)
+
+    task.cancel(id)
+    ```
+  </Tab>
+</Tabs>
+
+<Info>
+  Milliseconds are automatically converted to seconds for Roblox's `task` library.
+</Info>
+
+## Array Methods
+
+### Simple Transformations
+
+| TypeScript | Luau |
+|------------|------|
+| `arr.push(item)` | `table.insert(arr, item)` |
+| `arr.pop()` | `table.remove(arr)` |
+| `arr.shift()` | `table.remove(arr, 1)` |
+| `arr.includes(item)` | `table.find(arr, item) ~= nil` |
+| `arr.indexOf(item)` | `table.find(arr, item) or -1` |
+| `arr.length` | `#arr` |
+
+### Higher-Order Functions
+
+These compile to auto-generated helper functions:
+
+| TypeScript | Luau |
+|------------|------|
+| `arr.map(fn)` | `_arrayMap(arr, fn)` |
+| `arr.filter(fn)` | `_arrayFilter(arr, fn)` |
+| `arr.reduce(fn, init)` | `_arrayReduce(arr, fn, init)` |
+| `arr.find(fn)` | `_arrayFind(arr, fn)` |
+| `arr.some(fn)` | `_arraySome(arr, fn)` |
+| `arr.every(fn)` | `_arrayEvery(arr, fn)` |
+| `arr.slice(start, end)` | `_arraySlice(arr, start, end)` |
+| `arr.splice(start, count)` | `_arraySplice(arr, start, count)` |
+| `arr.flat()` | `_arrayFlat(arr)` |
+| `arr.flatMap(fn)` | `_arrayFlatMap(arr, fn)` |
+| `arr.concat(other)` | `_arrayConcat(arr, other)` |
+| `arr.reverse()` | `_arrayReverse(arr)` |
+| `arr.fill(value)` | `_arrayFill(arr, value)` |
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    const numbers = [1, 2, 3, 4, 5];
+    const doubled = numbers.map(n => n * 2);
+    const evens = numbers.filter(n => n % 2 === 0);
+    const sum = numbers.reduce((acc, n) => acc + n, 0);
+    const found = numbers.find(n => n > 3);
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    local function _arrayMap(t, fn)
+        local result = {}
+        for i, v in t do
+            result[i] = fn(v, i)
+        end
+        return result
+    end
+
+    local function _arrayFilter(t, fn)
+        local result = {}
+        for i, v in t do
+            if fn(v, i) then
+                table.insert(result, v)
+            end
+        end
+        return result
+    end
+
+    local function _arrayReduce(t, fn, init)
+        local acc = init
+        for i, v in t do
+            acc = fn(acc, v, i)
+        end
+        return acc
+    end
+
+    local function _arrayFind(t, fn)
+        for i, v in t do
+            if fn(v, i) then
+                return v
+            end
+        end
+        return nil
+    end
+
+    local numbers = { 1, 2, 3, 4, 5 }
+    local doubled = _arrayMap(numbers, function(n) return n * 2 end)
+    local evens = _arrayFilter(numbers, function(n) return n % 2 == 0 end)
+    local sum = _arrayReduce(numbers, function(acc, n) return acc + n end, 0)
+    local found = _arrayFind(numbers, function(n) return n > 3 end)
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  Helper functions are only generated when the corresponding method is used, keeping output minimal.
+</Note>
+
+### Array Static Methods
+
+| TypeScript | Luau |
+|------------|------|
+| `Array.isArray(x)` | `typeof(x) == "table"` |
+| `Array.from(x)` | Table conversion helper |
+
+## String Methods
+
+| TypeScript | Luau |
+|------------|------|
+| `str.toLowerCase()` | `string.lower(str)` |
+| `str.toUpperCase()` | `string.upper(str)` |
+| `str.trim()` | Custom trim helper |
+| `str.split(sep)` | `string.split(str, sep)` |
+| `str.includes(sub)` | `string.find(str, sub) ~= nil` |
+| `str.startsWith(prefix)` | `string.sub(str, 1, #prefix) == prefix` |
+| `str.endsWith(suffix)` | Custom helper |
+| `str.replace(old, new)` | `string.gsub(str, old, new)` |
+| `str.length` | `#str` |
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    const text = "  Hello World  ";
+    const lower = text.toLowerCase();
+    const trimmed = text.trim();
+    const words = text.trim().split(" ");
+    const hasHello = text.includes("Hello");
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    local function _stringTrim(s)
+        return string.match(s, "^%s*(.-)%s*$")
+    end
+
+    local text = "  Hello World  "
+    local lower = string.lower(text)
+    local trimmed = _stringTrim(text)
+    local words = string.split(_stringTrim(text), " ")
+    local hasHello = string.find(text, "Hello") ~= nil
+    ```
+  </Tab>
+</Tabs>
+
+## Object Methods
+
+| TypeScript | Luau |
+|------------|------|
+| `Object.keys(obj)` | `_objectKeys(obj)` |
+| `Object.values(obj)` | `_objectValues(obj)` |
+| `Object.entries(obj)` | `_objectEntries(obj)` |
+| `Object.assign(target, ...sources)` | `_objectAssign(target, ...)` |
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    const obj = { a: 1, b: 2, c: 3 };
+    const keys = Object.keys(obj);
+    const values = Object.values(obj);
+    const entries = Object.entries(obj);
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    local function _objectKeys(obj)
+        local keys = {}
+        for k, _ in obj do
+            table.insert(keys, k)
+        end
+        return keys
+    end
+
+    local function _objectValues(obj)
+        local values = {}
+        for _, v in obj do
+            table.insert(values, v)
+        end
+        return values
+    end
+
+    local function _objectEntries(obj)
+        local entries = {}
+        for k, v in obj do
+            table.insert(entries, { k, v })
+        end
+        return entries
+    end
+
+    local obj = { a = 1, b = 2, c = 3 }
+    local keys = _objectKeys(obj)
+    local values = _objectValues(obj)
+    local entries = _objectEntries(obj)
+    ```
+  </Tab>
+</Tabs>
+
+## Number Methods
+
+| TypeScript | Luau |
+|------------|------|
+| `Number.isInteger(x)` | `x == math.floor(x)` |
+| `Number.isNaN(x)` | `x ~= x` |
+| `Number.isFinite(x)` | `x ~= math.huge and x ~= -math.huge` |
+
+```ts
+const isInt = Number.isInteger(42.5);  // false
+const notNum = Number.isNaN(0/0);      // true
+// Compiles to inline checks
+```
+
+## RegExp
+
+Regular expressions compile to `luau-regexp` calls:
+
+| TypeScript | Luau |
+|------------|------|
+| `/regex/flags` | `RegExp("regex", "flags")` |
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    const pattern = /hello (\w+)/i;
+    const match = pattern.test("Hello World");
+    const result = pattern.exec("Hello World");
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    local RegExp = require(game:GetService("ReplicatedStorage").Packages.LuauRegExp)
+
+    local pattern = RegExp("hello (\\w+)", "i")
+    local match = pattern:test("Hello World")
+    local result = pattern:exec("Hello World")
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  RegExp support requires the `luau-regexp` package. Install via Wally: `jsdotlua/luau-regexp`
+</Note>

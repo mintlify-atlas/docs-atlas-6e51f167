@@ -1,0 +1,155 @@
+---
+title: CLI Overview
+description: Command-line interface for rbx-tsx compiler
+---
+
+The rbx-tsx CLI provides commands to compile, watch, check, and scaffold TypeScript/TSX projects for Roblox.
+
+## Installation
+
+```bash
+npm install rbx-tsx
+```
+
+The `rbx-tsx` command will be available in your project's `node_modules/.bin` directory or globally if installed with `-g`.
+
+## Available Commands
+
+<CardGroup cols={2}>
+  <Card title="compile" icon="code" href="/cli/compile">
+    Compile TSX/TS files to Luau
+  </Card>
+  <Card title="watch" icon="eye" href="/cli/watch">
+    Watch files and recompile on changes
+  </Card>
+  <Card title="check" icon="check" href="/cli/check">
+    Type check only (no emit)
+  </Card>
+  <Card title="init" icon="folder-plus" href="/cli/init">
+    Scaffold a new rbx-tsx project
+  </Card>
+</CardGroup>
+
+## Common Patterns
+
+### Single File Compilation
+
+Compile a single file to stdout:
+
+```bash
+rbx-tsx compile App.tsx
+```
+
+Compile to a specific output file:
+
+```bash
+rbx-tsx compile App.tsx -o App.luau
+```
+
+### Directory Compilation
+
+Compile an entire directory:
+
+```bash
+rbx-tsx compile src/ -o out/
+```
+
+This recursively compiles all `.ts`, `.tsx`, `.js`, and `.jsx` files (excluding `.d.ts`, `.test.*`, and `.spec.*` files) and preserves the directory structure.
+
+### Development Workflow
+
+Watch for changes during development:
+
+```bash
+rbx-tsx watch src/ -o out/
+```
+
+Type check before committing:
+
+```bash
+rbx-tsx check src/
+```
+
+### Working with CSS
+
+Compile TypeScript with CSS modules (requires [rbx-css](https://github.com/richie0866/rbx-css) installed):
+
+```bash
+rbx-tsx compile src/ -o out/ --css
+```
+
+This will:
+1. Compile all `.css` files to `.style.luau` using `rbx-css`
+2. Generate CSS manifests for type-safe styling
+3. Compile TypeScript files with CSS import support
+4. Create a `css.d.ts` type definition file
+
+### Custom React Paths
+
+If your React packages are located in different paths:
+
+```bash
+rbx-tsx compile src/ -o out/ \
+  --react-path "game.Shared.Packages.React" \
+  --react-roblox-path "game.Shared.Packages.ReactRoblox"
+```
+
+## File Discovery
+
+When compiling directories, rbx-tsx:
+
+- **Includes**: `.ts`, `.tsx`, `.js`, `.jsx` files
+- **Excludes**: 
+  - `.d.ts` (type definition files)
+  - `.test.*` and `.spec.*` (test files)
+  - `node_modules/` and `.git/` directories
+
+## Output Naming
+
+Files are renamed following Roblox/Rojo conventions:
+
+| Input | Output |
+|-------|--------|
+| `index.tsx` | `init.luau` |
+| `Component.tsx` | `Component.luau` |
+| `utils.ts` | `utils.luau` |
+| `styles.css` | `styles.style.luau` (with `--css`) |
+
+## Rojo Integration
+
+rbx-tsx automatically detects `default.project.json` in parent directories for:
+
+- **Path alias resolution**: Maps filesystem paths to Roblox instance paths
+- **Cross-boundary imports**: Resolves imports across Rojo tree boundaries
+
+<Info>
+When a Rojo project is detected, you'll see:
+```bash
+Rojo: default.project.json
+```
+</Info>
+
+## Exit Codes
+
+| Code | Description |
+|------|-------------|
+| `0` | Success |
+| `1` | Compilation errors or warnings with `--strict` |
+
+## Version Information
+
+```bash
+rbx-tsx --version
+```
+
+Shows the current version of rbx-tsx.
+
+## Help
+
+```bash
+rbx-tsx --help
+rbx-tsx compile --help
+rbx-tsx watch --help
+rbx-tsx check --help
+rbx-tsx init --help
+```

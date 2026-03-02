@@ -1,0 +1,295 @@
+---
+title: rbx-tsx check
+description: Type check only (no emit)
+---
+
+Run the rbx-tsx compiler in check-only mode to validate TypeScript/TSX files without emitting Luau output.
+
+## Usage
+
+```bash
+rbx-tsx check <input> [options]
+```
+
+### Arguments
+
+<ParamField path="input" type="string" required>
+  Input file or directory to check.
+  
+  **Examples**:
+  - Single file: `App.tsx`
+  - Directory: `src/` (recursively checks all source files)
+</ParamField>
+
+## Options
+
+<ParamField path="--strict" type="boolean">
+  Treat warnings as errors
+  
+  **Default**: `false`
+  
+  When enabled, the command exits with code 1 if any warnings are emitted.
+</ParamField>
+
+<ParamField path="--warn" type="string">
+  Warning level
+  
+  **Default**: `all`
+  
+  **Options**:
+  - `all` - Show all warnings
+  - `unsupported` - Show only unsupported feature warnings
+  - `none` - Suppress all warnings
+</ParamField>
+
+<Info>
+The `check` command does not support output-related flags like `-o`, `--css`, `--sourcemap`, or React path configuration, as it does not emit any files.
+</Info>
+
+## Examples
+
+<CodeGroup>
+
+```bash Check single file
+rbx-tsx check App.tsx
+```
+
+```bash Check directory
+rbx-tsx check src/
+```
+
+```bash Strict mode (treat warnings as errors)
+rbx-tsx check src/ --strict
+```
+
+```bash Only show unsupported features
+rbx-tsx check src/ --warn unsupported
+```
+
+```bash Suppress all warnings
+rbx-tsx check src/ --warn none
+```
+
+</CodeGroup>
+
+## Output
+
+### Success
+
+When all files pass validation:
+
+```bash
+rbx-tsx check src/
+```
+
+**Console output**:
+```
+Check passed.
+```
+
+**Exit code**: `0`
+
+### Warnings
+
+When warnings are detected:
+
+```bash
+rbx-tsx check src/
+```
+
+**Console output** (stderr):
+```
+[WARN] Counter.tsx:12:5: Using 'as' type assertion
+[WARN] App.tsx:24:10: Optional chaining creates temporary variables
+Check passed.
+```
+
+**Exit code**: `0` (unless `--strict` is enabled)
+
+### Errors
+
+When errors are detected:
+
+```bash
+rbx-tsx check src/
+```
+
+**Console output** (stderr):
+```
+[ERROR] App.tsx:15:10: Unexpected token '}'
+[ERROR] utils.ts:32:5: Cannot use 'with' statement
+```
+
+**Exit code**: `1`
+
+### With --strict
+
+Warnings are treated as errors:
+
+```bash
+rbx-tsx check src/ --strict
+```
+
+**Console output** (stderr):
+```
+[WARN] Counter.tsx:12:5: Using 'as' type assertion
+```
+
+**Exit code**: `1`
+
+## Use Cases
+
+### Pre-commit Validation
+
+Run checks before committing:
+
+```bash
+#!/bin/bash
+rbx-tsx check src/ --strict
+if [ $? -ne 0 ]; then
+  echo "Type check failed. Fix errors before committing."
+  exit 1
+fi
+```
+
+### CI/CD Pipeline
+
+Add to your CI workflow:
+
+```yaml
+name: Type Check
+on: [push, pull_request]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: oven-sh/setup-bun@v1
+      - run: bun install
+      - run: rbx-tsx check src/ --strict
+```
+
+### IDE Integration
+
+Run as a task in VS Code (`.vscode/tasks.json`):
+
+```json
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Type Check",
+      "type": "shell",
+      "command": "rbx-tsx check src/",
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    }
+  ]
+}
+```
+
+Run with `Ctrl+Shift+B` or `Cmd+Shift+B`.
+
+### Quick Validation
+
+Check a specific file during development:
+
+```bash
+rbx-tsx check src/components/Button.tsx
+```
+
+## What Gets Checked
+
+The `check` command validates:
+
+<AccordionGroup>
+  <Accordion title="TypeScript Syntax" icon="code">
+    - Valid TypeScript/TSX syntax
+    - Proper JSX element nesting
+    - Correct import/export statements
+    - Valid type annotations
+  </Accordion>
+  
+  <Accordion title="Unsupported Features" icon="triangle-exclamation">
+    - Features not supported by rbx-tsx compiler
+    - Platform-specific APIs unavailable in Luau/Roblox
+    - Non-standard TypeScript extensions
+  </Accordion>
+  
+  <Accordion title="Code Patterns" icon="magnifying-glass">
+    - Type assertions (`as` keyword)
+    - Optional chaining temporary variables
+    - Complex destructuring patterns
+    - Generator function usage
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+The `check` command does **not** run TypeScript's type checker (`tsc`). It only validates syntax and features supported by rbx-tsx. For full TypeScript type checking, use `tsc --noEmit` alongside `rbx-tsx check`.
+</Warning>
+
+## Performance
+
+Check is faster than compile since it:
+- Skips code generation
+- Skips file I/O for output
+- Only parses and validates
+
+**Typical check times**:
+- Small project (10-50 files): ~50-200ms
+- Medium project (100-500 files): ~500ms-2s
+- Large project (1000+ files): ~5-15s
+
+## Exit Codes
+
+| Code | Description |
+|------|-------------|
+| `0` | All checks passed |
+| `1` | Errors detected (or warnings with `--strict`) |
+
+## Differences from Compile
+
+Check mode differs from [`compile`](/cli/compile):
+
+| Feature | `compile` | `check` |
+|---------|-----------|----------|
+| Emits `.luau` files | ✓ | ✗ |
+| Validates syntax | ✓ | ✓ |
+| Reports warnings | ✓ | ✓ |
+| CSS compilation | ✓ | ✗ |
+| Source maps | ✓ | ✗ |
+| Faster execution | ✗ | ✓ |
+| Output configuration | ✓ | ✗ |
+
+<Tip>
+Use `check` in pre-commit hooks and CI pipelines for fast validation without generating output files.
+</Tip>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="False positives">
+    Some patterns may trigger warnings that are safe in your codebase:
+    - Use `--warn unsupported` to filter noise
+    - Use `--warn none` to suppress all warnings (not recommended for CI)
+  </Accordion>
+  
+  <Accordion title="TypeScript type errors not shown">
+    `rbx-tsx check` validates rbx-tsx compatibility, not TypeScript types.
+    
+    For full type checking, run both:
+    ```bash
+    tsc --noEmit && rbx-tsx check src/
+    ```
+  </Accordion>
+  
+  <Accordion title="Slow check times">
+    - Ensure you're not checking `node_modules/` or other large directories
+    - The checker automatically excludes `.git/`, `node_modules/`, `.test.*`, `.spec.*`, and `.d.ts` files
+    - Check your file patterns and directory structure
+  </Accordion>
+</AccordionGroup>

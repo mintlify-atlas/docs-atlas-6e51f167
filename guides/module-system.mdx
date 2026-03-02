@@ -1,0 +1,370 @@
+---
+title: Module System
+description: Import/export handling, path resolution, file naming
+---
+
+rbx-tsx transforms TypeScript import/export statements into Luau `require()` calls with Rojo-aware path resolution.
+
+## Import Patterns
+
+### React Imports
+
+```tsx
+import React from "react";
+import { useState, useEffect } from "react";
+```
+
+**Compiled:**
+
+```lua
+local React = require(game:GetService("ReplicatedStorage").Packages.React)
+local useState = React.useState
+local useEffect = React.useEffect
+```
+
+### ReactRoblox Imports
+
+```tsx
+import { createRoot } from "react-roblox";
+```
+
+**Compiled:**
+
+```lua
+local ReactRoblox = require(game:GetService("ReplicatedStorage").Packages.ReactRoblox)
+local createRoot = ReactRoblox.createRoot
+```
+
+<Note>
+Both `react-dom` and `react-roblox` import specifiers map to the `ReactRoblox` package.
+</Note>
+
+### Roblox Services (`@rbx-services`)
+
+rbx-tsx provides a special `@rbx-services` import pattern for accessing Roblox services:
+
+```tsx
+import { Players, Workspace, ReplicatedStorage } from "@rbx-services";
+```
+
+**Compiled:**
+
+```lua
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+```
+
+**Available services:**
+- Core: `Players`, `Workspace`, `ReplicatedStorage`, `ServerScriptService`, `StarterPlayer`, etc.
+- UI: `GuiService`, `UserInputService`, `ContextActionService`
+- Physics: `PhysicsService`, `Debris`
+- Data: `DataStoreService`, `HttpService`
+- Social: `BadgeService`, `GamePassService`, `TeleportService`
+- And [300+ more services](https://create.roblox.com/docs/reference/engine/classes)
+
+<Warning>
+Only import services that exist in the Roblox API. Unknown service names will produce warnings.
+</Warning>
+
+### Relative Imports
+
+Relative imports resolve using `script.Parent` paths:
+
+```tsx
+import Card from "./Card";
+import { helper } from "./utils";
+import * as Utils from "./utils";
+```
+
+**Compiled (from regular file):**
+
+```lua
+local Card = require(script.Parent.Card)
+local _module_utils = require(script.Parent.utils)
+local helper = _module_utils.helper
+local Utils = require(script.Parent.utils)
+```
+
+**Compiled (from `index.tsx`):**
+
+```lua
+-- index.tsx becomes init.luau, so script IS the folder
+local Card = require(script.Card)
+local _module_utils = require(script.utils)
+local helper = _module_utils.helper
+local Utils = require(script.utils)
+```
+
+### Parent Directory Imports
+
+```tsx
+import Header from "../components/Header";
+import { API_URL } from "../../config";
+```
+
+**Compiled (from regular file):**
+
+```lua
+local Header = require(script.Parent.Parent.components.Header)
+local _module_config = require(script.Parent.Parent.Parent.config)
+local API_URL = _module_config.API_URL
+```
+
+### Package Imports
+
+Package imports resolve to `ReplicatedStorage.Packages.<PackageName>`:
+
+```tsx
+import { Signal } from "@rbxts/signals";
+```
+
+**Compiled:**
+
+```lua
+local _Rbxtssignals = require(ReplicatedStorage.Packages.Rbxtssignals)
+local Signal = _Rbxtssignals.Signal
+```
+
+<Note>
+Package names are capitalized and special characters are removed. Install packages using [Wally](https://wally.run/).
+</Note>
+
+### CSS Module Imports
+
+With the `--css` flag, CSS files can be imported as modules:
+
+```tsx
+import styles from "./Card.module.css";
+
+function Card() {
+  return <div className={styles.container}>Content</div>;
+}
+```
+
+**Compiled:**
+
+```lua
+local styles = require(script.Parent["Card.style"])
+
+local function Card()
+  return React.createElement("Frame", { [React.Tag] = styles.container }, "Content")
+end
+```
+
+See [CSS Support](/guides/css-support) for details.
+
+## Export Patterns
+
+### Default Export
+
+```tsx
+export default function App() {
+  return <div>Hello</div>;
+}
+```
+
+**Compiled:**
+
+```lua
+local function App()
+  return React.createElement("Frame", nil, "Hello")
+end
+
+return App
+```
+
+### Named Exports
+
+```tsx
+export function helper() {
+  return "result";
+}
+
+export const API_URL = "https://api.example.com";
+```
+
+**Compiled:**
+
+```lua
+local function helper()
+  return "result"
+end
+
+local API_URL = "https://api.example.com"
+
+return {
+  helper = helper,
+  API_URL = API_URL,
+}
+```
+
+### Mixed Default + Named Exports
+
+```tsx
+export default function Card() {
+  return <div>Card</div>;
+}
+
+export function CardHeader() {
+  return <header>Header</header>;
+}
+```
+
+**Compiled:**
+
+```lua
+local function Card()
+  return React.createElement("Frame", nil, "Card")
+end
+
+local function CardHeader()
+  return React.createElement("Frame", nil, "Header")
+end
+
+return {
+  default = Card,
+  CardHeader = CardHeader,
+}
+```
+
+### Re-exports
+
+```tsx
+export { Button } from "./Button";
+export { Card as UICard } from "./Card";
+```
+
+**Compiled:**
+
+```lua
+local _reexport_Button = require(script.Parent.Button)
+local Button = _reexport_Button.Button
+
+local _reexport_Card = require(script.Parent.Card)
+local UICard = _reexport_Card.Card
+
+return {
+  Button = Button,
+  UICard = UICard,
+}
+```
+
+### Type-Only Imports/Exports
+
+Type-only imports are stripped at runtime:
+
+```tsx
+import type { User } from "./types";
+
+export type { User };
+```
+
+**Compiled:**
+
+```lua
+-- Type imports/exports are erased (types are embedded inline)
+```
+
+## File Naming Conventions
+
+rbx-tsx follows Rojo's file naming conventions:
+
+| TypeScript File | Compiled Luau | Notes |
+|-----------------|---------------|-------|
+| `App.tsx` | `App.luau` | Regular module |
+| `index.tsx` | `init.luau` | Folder module (script IS the folder) |
+| `Button.ts` | `Button.luau` | TypeScript without JSX |
+| `types.d.ts` | _(skipped)_ | Type declaration files are not compiled |
+| `test.spec.ts` | _(skipped)_ | Test files are ignored |
+
+<Warning>
+When importing from `index.tsx`, use the **folder name**, not "index":
+
+```tsx
+// ✅ Correct
+import Card from "./Card"; // imports Card/index.tsx
+
+// ❌ Wrong
+import Card from "./Card/index";
+```
+</Warning>
+
+## Path Alias Resolution (Rojo Integration)
+
+rbx-tsx automatically reads `default.project.json` to resolve cross-boundary imports:
+
+**Project structure:**
+```
+my-game/
+├── default.project.json
+├── src/
+│   ├── client/
+│   │   └── App.tsx
+│   └── shared/
+│       └── utils.ts
+└── out/
+    ├── client/
+    │   └── App.luau
+    └── shared/
+        └── utils.luau
+```
+
+**default.project.json:**
+```json
+{
+  "tree": {
+    "ReplicatedStorage": {
+      "Shared": { "$path": "out/shared" }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "Client": { "$path": "out/client" }
+      }
+    }
+  }
+}
+```
+
+**Import from client to shared:**
+
+```tsx
+// src/client/App.tsx
+import { formatTime } from "../../shared/utils";
+```
+
+**Compiled:**
+
+```lua
+-- Resolves across Rojo boundaries
+local _module_utils = require(game:GetService("ReplicatedStorage").Shared.utils)
+local formatTime = _module_utils.formatTime
+```
+
+<Note>
+rbx-tsx detects `default.project.json` automatically when compiling directories. No configuration needed.
+</Note>
+
+## Side-Effect Imports
+
+```tsx
+import "./setup";
+```
+
+**Compiled:**
+
+```lua
+require(script.Parent.setup)
+```
+
+## Dynamic Imports
+
+Dynamic imports are **not supported**. Use static imports only:
+
+```tsx
+// ❌ Not supported
+const module = await import("./module");
+
+// ✅ Use static imports
+import module from "./module";
+```

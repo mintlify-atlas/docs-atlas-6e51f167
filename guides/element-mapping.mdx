@@ -1,0 +1,160 @@
+---
+title: Element Mapping
+description: HTML element to Roblox class mapping table with behavior
+---
+
+rbx-tsx automatically maps HTML element names to Roblox GUI classes. You can write familiar HTML-like elements (`<div>`, `<button>`, `<input>`) and rbx-tsx translates them to the appropriate Roblox classes.
+
+## Element Mapping Table
+
+| TSX Element | Roblox Class | Default Behavior |
+|-------------|--------------|------------------|
+| `<div>` | `Frame` | Standard container |
+| `<span>`, `<p>`, `<h1>`-`<h6>`, `<label>` | `TextLabel` | Text display |
+| `<button>`, `<a>` | `TextButton` | Clickable button |
+| `<input>`, `<textarea>` | `TextBox` | Text input |
+| `<img>` | `ImageLabel` | Image display |
+| `<canvas>` | `ViewportFrame` | 3D viewport container |
+| `<video>` | `VideoFrame` | Video playback |
+| `<scroll>` | `ScrollingFrame` | Scrollable container |
+
+### Semantic Containers
+
+These elements map to `Frame` with transparent background, auto-height, and full-width:
+
+| TSX Element | Roblox Class | Notes |
+|-------------|--------------|-------|
+| `<nav>`, `<header>`, `<footer>` | `Frame` | Transparent, auto-height, full-width |
+| `<main>`, `<section>`, `<article>` | `Frame` | Transparent, auto-height, full-width |
+| `<aside>`, `<form>` | `Frame` | Transparent, auto-height, full-width |
+
+### List Elements
+
+| TSX Element | Roblox Class | Auto-Injected Behavior |
+|-------------|--------------|------------------------|
+| `<ul>`, `<ol>` | `Frame` | Vertical `UIListLayout` auto-injected |
+| `<li>` | `Frame` | Transparent, auto-height, full-width |
+
+### Table Elements
+
+| TSX Element | Roblox Class | Auto-Injected Behavior |
+|-------------|--------------|------------------------|
+| `<table>`, `<thead>`, `<tbody>`, `<tfoot>` | `Frame` | Vertical `UIListLayout` auto-injected |
+| `<tr>` | `Frame` | Horizontal `UIListLayout` auto-injected |
+| `<td>`, `<th>` | `TextLabel` | Transparent, auto-sized |
+
+### Interactive Elements
+
+| TSX Element | Roblox Class | Notes |
+|-------------|--------------|-------|
+| `<dialog>` | `Frame` | Centered (AnchorPoint + Position) |
+| `<select>` | `Frame` | Vertical `UIListLayout` auto-injected |
+| `<option>`, `<summary>` | `TextButton` | Clickable selection |
+
+## Using Native Roblox Classes
+
+You can also use Roblox GUI class names directly. These pass through without transformation:
+
+```tsx
+<Frame>
+  <ScrollingFrame>
+    <TextLabel Text="Hello" />
+  </ScrollingFrame>
+</Frame>
+```
+
+**Supported native classes:**
+- `Frame`
+- `ScrollingFrame`
+- `TextLabel`, `TextButton`, `TextBox`
+- `ImageLabel`, `ImageButton`
+- `ViewportFrame`, `VideoFrame`
+- `CanvasGroup`
+- `BillboardGui`, `SurfaceGui`, `ScreenGui`
+
+<Warning>
+When using native Roblox class names, default props are only applied when you don't specify them yourself. HTML element names always receive their documented default behaviors.
+</Warning>
+
+## Text vs Container Elements
+
+### Text Elements
+
+These elements support a `Text` property and will render text children directly:
+
+```tsx
+<button>Click me</button>
+// Becomes: <TextButton Text="Click me" />
+
+<h1>Title</h1>
+// Becomes: <TextLabel Text="Title" />
+```
+
+### Container Elements
+
+These elements **cannot** have a `Text` property. Text children become child `TextLabel` instances:
+
+```tsx
+<div>Hello</div>
+// Becomes:
+// <Frame>
+//   <TextLabel Text="Hello" />
+// </Frame>
+```
+
+**Container elements:**
+- `Frame`
+- `ScrollingFrame`
+- `ViewportFrame`
+- `ImageLabel`
+- `CanvasGroup`
+
+## Example
+
+**Input TSX:**
+
+```tsx
+export default function Card() {
+  return (
+    <div className="card">
+      <h1>Welcome</h1>
+      <p>This is a card component</p>
+      <button onClick={() => print("Clicked")}>Action</button>
+    </div>
+  );
+}
+```
+
+**Compiled Luau:**
+
+```lua
+local React = require(game:GetService("ReplicatedStorage").Packages.React)
+
+local function Card()
+  return React.createElement("Frame", { [React.Tag] = "card" }, {
+    H1 = React.createElement("TextLabel", { Text = "Welcome" }),
+    P = React.createElement("TextLabel", { Text = "This is a card component" }),
+    Button = React.createElement("TextButton", {
+      [React.Event.Activated] = function()
+        print("Clicked")
+      end,
+      Text = "Action",
+    }),
+  })
+end
+
+return Card
+```
+
+## Unsupported Elements
+
+The following HTML elements are not supported and will produce warnings:
+
+- `<iframe>`, `<embed>`, `<object>`
+- `<audio>`, `<source>`, `<track>`
+- `<map>`, `<area>`
+- `<svg>`, `<circle>`, `<rect>`, `<path>`, `<line>`, `<polygon>`
+
+<Warning>
+Unsupported elements will still compile but may not render as expected in Roblox. Consider using native Roblox alternatives or creating custom components.
+</Warning>

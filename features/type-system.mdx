@@ -1,0 +1,437 @@
+---
+title: Type System
+description: TypeScript types preserved as Luau type annotations
+---
+
+rbx-tsx preserves TypeScript type information as Luau type annotations, making the compiled output fully typed and checkable by Luau's type system.
+
+## Basic Types
+
+TypeScript primitive types map directly to Luau types:
+
+| TypeScript | Luau |
+|------------|------|
+| `string` | `string` |
+| `number` | `number` |
+| `boolean` | `boolean` |
+| `void` | `()` |
+| `any` | `any` |
+| `unknown` | `unknown` |
+| `never` | `never` |
+
+## Interfaces
+
+Interfaces compile to Luau type definitions:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    interface Player {
+      name: string;
+      health: number;
+      inventory?: Item[];
+    }
+
+    interface Enemy extends Player {
+      damage: number;
+    }
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    type Player = {
+        name: string,
+        health: number,
+        inventory: { Item }?,
+    }
+
+    type Enemy = {
+        name: string,
+        health: number,
+        inventory: { Item }?,
+        damage: number,
+    }
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  Luau doesn't support interface extension directly, so inherited properties are flattened into the type definition.
+</Note>
+
+## Type Aliases
+
+Type aliases preserve union types, intersections, and complex compositions:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    type ID = string | number;
+    type Rarity = "common" | "uncommon" | "rare" | "legendary";
+    type Result<T, E> = { success: true; value: T } | { success: false; error: E };
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    type ID = string | number
+    type Rarity = "common" | "uncommon" | "rare" | "legendary"
+    type Result<T, E> = { success: true, value: T } | { success: false, error: E }
+    ```
+  </Tab>
+</Tabs>
+
+## Optional Types
+
+Optional properties and parameters use Luau's `?` syntax:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    interface Config {
+      timeout?: number;
+      retries?: number;
+      debug: boolean;
+    }
+
+    function connect(host: string, port?: number) {
+      // ...
+    }
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    type Config = {
+        timeout: number?,
+        retries: number?,
+        debug: boolean,
+    }
+
+    local function connect(host: string, port: number?)
+        -- ...
+    end
+    ```
+  </Tab>
+</Tabs>
+
+## Arrays
+
+Array types compile to Luau's array syntax:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    const items: string[] = ["a", "b", "c"];
+    const numbers: Array<number> = [1, 2, 3];
+    const matrix: number[][] = [[1, 2], [3, 4]];
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    local items: { string } = { "a", "b", "c" }
+    local numbers: { number } = { 1, 2, 3 }
+    local matrix: { { number } } = { { 1, 2 }, { 3, 4 } }
+    ```
+  </Tab>
+</Tabs>
+
+## Records and Index Signatures
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    const scores: Record<string, number> = {
+      player1: 100,
+      player2: 200,
+    };
+
+    interface Dictionary<T> {
+      [key: string]: T;
+    }
+
+    const data: Dictionary<number> = { a: 1, b: 2 };
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    local scores: { [string]: number } = {
+        player1 = 100,
+        player2 = 200,
+    }
+
+    type Dictionary<T> = { [string]: T }
+
+    local data: Dictionary<number> = { a = 1, b = 2 }
+    ```
+  </Tab>
+</Tabs>
+
+## Function Types
+
+Function signatures preserve parameter and return types:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    type Callback = () => void;
+    type Handler = (event: string, data: unknown) => boolean;
+    type Transform<T, U> = (input: T) => U;
+
+    function process(callback: Callback) {
+      callback();
+    }
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    type Callback = () -> ()
+    type Handler = (event: string, data: unknown) -> boolean
+    type Transform<T, U> = (input: T) -> U
+
+    local function process(callback: Callback)
+        callback()
+    end
+    ```
+  </Tab>
+</Tabs>
+
+## Generics
+
+Generic types and functions preserve type parameters:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    interface BaseEntity {
+      id: string | number;
+      createdAt: number;
+    }
+
+    function getById<T extends BaseEntity>(entities: T[], id: string | number): T | undefined {
+      return entities.find((e) => e.id === id);
+    }
+
+    interface Box<T> {
+      value: T;
+    }
+
+    const numberBox: Box<number> = { value: 42 };
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    type BaseEntity = {
+        id: string | number,
+        createdAt: number,
+    }
+
+    local function getById<T>(entities: { T }, id: string | number): T?
+        return _arrayFind(entities, function(e) return e.id == id end)
+    end
+
+    type Box<T> = {
+        value: T,
+    }
+
+    local numberBox: Box<number> = { value = 42 }
+    ```
+  </Tab>
+</Tabs>
+
+<Info>
+  Generic constraints (`extends`) are preserved in function signatures but flattened in type definitions.
+</Info>
+
+## Enums
+
+Enums compile to both value objects and type aliases:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    enum Direction {
+      Up,
+      Down,
+      Left,
+      Right,
+    }
+
+    enum Status {
+      Idle = "idle",
+      Running = "running",
+      Complete = "complete",
+    }
+
+    const dir: Direction = Direction.Up;
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    local Direction = {
+        Up = 0,
+        Down = 1,
+        Left = 2,
+        Right = 3,
+    }
+    type Direction = number
+
+    local Status = {
+        Idle = "idle",
+        Running = "running",
+        Complete = "complete",
+    }
+    type Status = string
+
+    local dir: Direction = Direction.Up
+    ```
+  </Tab>
+</Tabs>
+
+## Union Types
+
+Union types are preserved using Luau's `|` syntax:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    type Result = { success: true; data: string } | { success: false; error: string };
+
+    function handleResult(result: Result) {
+      if (result.success) {
+        console.log(result.data);
+      } else {
+        console.error(result.error);
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    type Result = { success: true, data: string } | { success: false, error: string }
+
+    local function handleResult(result: Result)
+        if result.success then
+            print(result.data)
+        else
+            warn(result.error)
+        end
+    end
+    ```
+  </Tab>
+</Tabs>
+
+## Intersection Types
+
+Intersection types merge properties:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    interface Named {
+      name: string;
+    }
+
+    interface Aged {
+      age: number;
+    }
+
+    type Person = Named & Aged;
+
+    const person: Person = { name: "Player", age: 25 };
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    type Named = {
+        name: string,
+    }
+
+    type Aged = {
+        age: number,
+    }
+
+    type Person = Named & Aged
+
+    local person: Person = { name = "Player", age = 25 }
+    ```
+  </Tab>
+</Tabs>
+
+## Utility Types
+
+Common TypeScript utility types are supported:
+
+### Partial
+
+```ts
+type PartialConfig = Partial<Config>;
+// All properties become optional
+```
+
+### Required
+
+```ts
+type RequiredConfig = Required<PartialConfig>;
+// All properties become required
+```
+
+### Readonly
+
+```ts
+type ReadonlyConfig = Readonly<Config>;
+// All properties become readonly (annotation only)
+```
+
+### NonNullable
+
+```ts
+type NonNullableID = NonNullable<string | null | undefined>;
+// Removes null and undefined from union
+```
+
+### Pick and Omit
+
+```ts
+type PlayerName = Pick<Player, "name">;
+type PlayerWithoutHealth = Omit<Player, "health">;
+```
+
+## Type Guards
+
+TypeScript type guards work with Luau's type narrowing:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    function isString(value: unknown): value is string {
+      return typeof value === "string";
+    }
+
+    function process(value: string | number) {
+      if (typeof value === "string") {
+        console.log(value.toUpperCase());
+      } else {
+        console.log(value * 2);
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    local function isString(value: unknown): boolean
+        return typeof(value) == "string"
+    end
+
+    local function process(value: string | number)
+        if typeof(value) == "string" then
+            print(string.upper(value))
+        else
+            print(value * 2)
+        end
+    end
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  Type narrowing works naturally with Luau's type checker when using `typeof()` checks.
+</Note>

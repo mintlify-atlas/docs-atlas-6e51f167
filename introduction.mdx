@@ -1,0 +1,119 @@
+---
+title: Introduction
+description: Write React components in TypeScript/TSX and compile them to clean, fully typed Luau for Roblox
+---
+
+# Welcome to rbx-tsx
+
+rbx-tsx is a TSX/TypeScript to Luau compiler targeting [react-lua](https://github.com/jsdotlua/react-lua) for Roblox. Write React components in TypeScript/TSX, get Luau modules that work inside Roblox.
+
+## Why rbx-tsx?
+
+While [roblox-ts](https://roblox-ts.com/) is the established TypeScript-to-Luau compiler for Roblox, rbx-tsx takes a different approach focused on React development with zero runtime dependencies and clean, typed Luau output.
+
+<CardGroup cols={2}>
+  <Card title="No Runtime Dependencies" icon="bolt">
+    Compiles to standalone Luau with no runtime packages required
+  </Card>
+  <Card title="Full Type Preservation" icon="shield">
+    TypeScript types become Luau type annotations—interfaces, generics, unions, and optionals preserved
+  </Card>
+  <Card title="Built-in JSX Support" icon="code">
+    JSX compiles directly to React.createElement for react-lua without configuration
+  </Card>
+  <Card title="HTML Element Mapping" icon="window">
+    Write `<div>`, `<button>`, `<input>`—automatically mapped to Roblox GUI classes
+  </Card>
+</CardGroup>
+
+## Key Features
+
+### React First
+
+Write idiomatic React with TypeScript and get clean Luau output:
+
+- All React hooks supported: `useState`, `useEffect`, `useCallback`, `useContext`, `useRef`, `useMemo`, and more
+- JSX fragments, spread attributes, conditional rendering
+- HTML elements map to Roblox GUI classes automatically
+- Portals via `ReactRoblox.createPortal`
+
+### Clean Output
+
+Your compiled Luau is designed to be read and debugged:
+
+- 1:1 mapping between TypeScript and Luau
+- Full type annotations preserved from TypeScript
+- No runtime dependencies or helper libraries
+- Clean variable names and structure
+
+### Comprehensive Language Support
+
+- **Modern TypeScript**: async/await, optional chaining, nullish coalescing, template literals
+- **Type System**: Interfaces, generics, union types, intersection types, utility types
+- **Language Features**: Destructuring, spread operators, classes with extends, decorators
+- **Built-in APIs**: console, Math, JSON, Array methods, String methods, Object utilities
+
+### Roblox Integration
+
+- Roblox constructors (`new Vector3()` becomes `Vector3.new()`)
+- Service imports via `@rbx-services`
+- Method calls use `:` colon syntax automatically
+- CSS module support with companion `rbx-css` compiler
+
+## Quick Comparison
+
+| Feature | rbx-tsx | roblox-ts |
+|---------|---------|----------|
+| **Runtime dependency** | None—compiles to standalone Luau | Requires `@rbxts/compiler-types` runtime |
+| **Luau type output** | Full type annotations preserved | Types erased; output is untyped |
+| **React / JSX** | Built-in, zero config | Requires `@rbxts/react` packages and manual setup |
+| **HTML elements** | `<div>`, `<button>` mapped automatically | Must use Roblox class names |
+| **Setup** | `npm install rbx-tsx`—that's it | Requires type packages, config, version matching |
+
+## Get Started
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Build your first Counter component in 5 minutes
+  </Card>
+  <Card title="Installation" icon="download" href="/installation">
+    Install rbx-tsx and scaffold a new project
+  </Card>
+  <Card title="CLI Reference" icon="terminal" href="/cli/overview">
+    Learn about compile, watch, check, and init commands
+  </Card>
+  <Card title="Examples" icon="code" href="/examples/react-components">
+    Explore side-by-side TypeScript and Luau examples
+  </Card>
+</CardGroup>
+
+## What You'll Build
+
+With rbx-tsx, you can build full-featured Roblox UIs using familiar React patterns:
+
+```tsx
+import React, { useState, useCallback } from "react";
+
+interface CounterProps {
+  label: string;
+  initialCount?: number;
+}
+
+export default function Counter({ label, initialCount = 0 }: CounterProps) {
+  const [count, setCount] = useState(initialCount);
+
+  const increment = useCallback(() => {
+    setCount((c) => c + 1);
+  }, []);
+
+  return (
+    <div className="counter">
+      <h1>{label}</h1>
+      <span>Count: {count}</span>
+      <button onClick={increment}>+</button>
+    </div>
+  );
+}
+```
+
+This compiles to clean, fully typed Luau that works seamlessly with react-lua and Roblox.

@@ -1,0 +1,478 @@
+---
+title: Language Transforms
+description: TypeScript language features compiled to idiomatic Luau
+---
+
+rbx-tsx transforms TypeScript language features into clean, readable Luau code.
+
+## Basic Syntax
+
+| TypeScript | Luau |
+|------------|------|
+| `const` / `let` | `local` |
+| `===` / `!==` | `==` / `~=` |
+| `&&` / `\|\|` / `!` | `and` / `or` / `not` |
+| `typeof x` | `typeof(x)` |
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    const name = "Player";
+    let score = 100;
+    const isActive = true && score > 50;
+    const type = typeof score;
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    local name = "Player"
+    local score = 100
+    local isActive = true and score > 50
+    local type = typeof(score)
+    ```
+  </Tab>
+</Tabs>
+
+## Nullish Coalescing
+
+The `??` operator provides a default value for `null` or `undefined`:
+
+| TypeScript | Luau |
+|------------|------|
+| `a ?? b` | `if a ~= nil then a else b` |
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    const displayTheme = theme ?? "light";
+    const displayName = user?.name ?? "Anonymous";
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    local displayTheme = if theme ~= nil then theme else "light"
+    local displayName = if (if user ~= nil then user.name else nil) ~= nil 
+        then if user ~= nil then user.name else nil 
+        else "Anonymous"
+    ```
+  </Tab>
+</Tabs>
+
+## Optional Chaining
+
+Safe property access with automatic short-circuiting:
+
+| TypeScript | Luau |
+|------------|------|
+| `a?.b?.c` | Temp-var optional chaining |
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    interface User {
+      name: string;
+      profile?: {
+        avatar?: string;
+        settings?: {
+          theme?: string;
+        };
+      };
+    }
+
+    const user: User | null = {
+      name: "Player",
+      profile: {
+        avatar: "rbxassetid://123",
+        settings: { theme: "dark" },
+      },
+    };
+
+    const theme = user?.profile?.settings?.theme;
+    const missing = user?.profile?.missing?.nested;
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    type User = {
+        name: string,
+        profile: { avatar: string?, settings: { theme: string? }? }?,
+    }
+
+    local user: User? = {
+        name = "Player",
+        profile = { avatar = "rbxassetid://123", settings = { theme = "dark" } },
+    }
+
+    local _opt0 = if user ~= nil then user.profile else nil
+    local _opt1 = if _opt0 ~= nil then _opt0.settings else nil
+    local theme = if _opt1 ~= nil then _opt1.theme else nil
+
+    local _opt2 = if user ~= nil then user.profile else nil
+    local _opt3 = if _opt2 ~= nil then _opt2.missing else nil
+    local missing = if _opt3 ~= nil then _opt3.nested else nil
+    ```
+  </Tab>
+</Tabs>
+
+<Info>
+  Optional chaining uses temporary variables to avoid re-evaluating expressions and preserve short-circuit behavior.
+</Info>
+
+## Ternary Operator
+
+| TypeScript | Luau |
+|------------|------|
+| `cond ? a : b` | `if cond then a else b` |
+
+```tsx
+const status = isOnline ? "Online" : "Offline";
+// Compiles to:
+local status = if isOnline then "Online" else "Offline"
+```
+
+## Template Literals
+
+String interpolation with automatic `tostring()` conversion:
+
+| TypeScript | Luau |
+|------------|------|
+| `` `hello ${name}` `` | `"hello " .. tostring(name)` |
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    const name = "Player";
+    const score = 100;
+    const message = `${name} has ${score} points`;
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    local name = "Player"
+    local score = 100
+    local message = tostring(name) .. " has " .. tostring(score) .. " points"
+    ```
+  </Tab>
+</Tabs>
+
+## Loops
+
+### For...of (Array iteration)
+
+| TypeScript | Luau |
+|------------|------|
+| `for...of` | `for _, v in items do` |
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    const items = ["a", "b", "c"];
+    for (const item of items) {
+      console.log(item);
+    }
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    local items = { "a", "b", "c" }
+    for _, item in items do
+        print(item)
+    end
+    ```
+  </Tab>
+</Tabs>
+
+### For...in (Object iteration)
+
+| TypeScript | Luau |
+|------------|------|
+| `for...in` | `for k, _ in obj do` |
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    const obj = { a: 1, b: 2, c: 3 };
+    for (const key in obj) {
+      console.log(key);
+    }
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    local obj = { a = 1, b = 2, c = 3 }
+    for key, _ in obj do
+        print(key)
+    end
+    ```
+  </Tab>
+</Tabs>
+
+### Numeric For
+
+| TypeScript | Luau |
+|------------|------|
+| Numeric `for` | `for i = 0, n - 1 do` |
+
+```ts
+for (let i = 0; i < 10; i++) {
+  console.log(i);
+}
+// Compiles to:
+for i = 0, 9 do
+    print(i)
+end
+```
+
+## Control Flow
+
+### Switch/Case
+
+| TypeScript | Luau |
+|------------|------|
+| `switch/case` | `if/elseif/else` |
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    switch (value) {
+      case "a":
+        console.log("A");
+        break;
+      case "b":
+        console.log("B");
+        break;
+      default:
+        console.log("Other");
+    }
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    if value == "a" then
+        print("A")
+    elseif value == "b" then
+        print("B")
+    else
+        print("Other")
+    end
+    ```
+  </Tab>
+</Tabs>
+
+### Try/Catch/Finally
+
+| TypeScript | Luau |
+|------------|------|
+| `try/catch/finally` | `pcall` |
+| `throw` | `error()` |
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    try {
+      riskyOperation();
+    } catch (err) {
+      console.error("Failed:", err);
+    } finally {
+      cleanup();
+    }
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    local success, err = pcall(function()
+        riskyOperation()
+    end)
+    if not success then
+        warn("Failed:", err)
+    end
+    cleanup()
+    ```
+  </Tab>
+</Tabs>
+
+## Destructuring
+
+Array and object destructuring compile to local variable extraction:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    const [first, second] = [1, 2, 3];
+    const { name, age } = { name: "Player", age: 25 };
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    local _arr = { 1, 2, 3 }
+    local first = _arr[1]
+    local second = _arr[2]
+
+    local _obj = { name = "Player", age = 25 }
+    local name = _obj.name
+    local age = _obj.age
+    ```
+  </Tab>
+</Tabs>
+
+## Spread Operator
+
+| TypeScript | Luau |
+|------------|------|
+| `{ ...a, ...b }` | `_merge(a, b)` |
+
+```ts
+const merged = { ...obj1, ...obj2, extra: true };
+// Compiles to helper function that merges tables
+```
+
+## Logical Assignment
+
+| TypeScript | Luau |
+|------------|------|
+| `&&=` / `\|\|=` / `??=` | Logical assignment |
+
+```ts
+a &&= b;  // a = a and b
+a ||= b;  // a = a or b
+a ??= b;  // a = if a ~= nil then a else b
+```
+
+## Delete Operator
+
+| TypeScript | Luau |
+|------------|------|
+| `delete obj.key` | `obj.key = nil` |
+
+```ts
+delete obj.property;
+// Compiles to:
+obj.property = nil
+```
+
+## Classes
+
+Classes compile to metatables with `__index`:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    class Player {
+      health: number;
+
+      constructor(health: number) {
+        this.health = health;
+      }
+
+      takeDamage(amount: number) {
+        this.health -= amount;
+      }
+    }
+
+    class Enemy extends Player {
+      armor: number;
+
+      constructor(health: number, armor: number) {
+        super(health);
+        this.armor = armor;
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    local Player = {}
+    Player.__index = Player
+
+    function Player.new(health: number)
+        local self = setmetatable({}, Player)
+        self.health = health
+        return self
+    end
+
+    function Player:takeDamage(amount: number)
+        self.health -= amount
+    end
+
+    local Enemy = setmetatable({}, { __index = Player })
+    Enemy.__index = Enemy
+
+    function Enemy.new(health: number, armor: number)
+        local self = setmetatable(Player.new(health), Enemy)
+        self.armor = armor
+        return self
+    end
+    ```
+  </Tab>
+</Tabs>
+
+## Async/Await
+
+| TypeScript | Luau |
+|------------|------|
+| `async/await` | Promise-based transform |
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    async function fetchConfig(): Promise<{ timeout: number }> {
+      return Promise.resolve({ timeout: 5000 });
+    }
+
+    async function loadData(): Promise<string> {
+      const config = await fetchConfig();
+      return `Loaded with timeout ${config.timeout}`;
+    }
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    local function fetchConfig()
+        return Promise.new(function(resolve)
+            resolve({ timeout = 5000 })
+        end)
+    end
+
+    local function loadData()
+        return fetchConfig():andThen(function(config)
+            return `Loaded with timeout {config.timeout}`
+        end)
+    end
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  Async/await requires a Promise library compatible with react-lua's Promise implementation.
+</Note>
+
+## Generators
+
+| TypeScript | Luau |
+|------------|------|
+| `function*` / `yield` | Coroutine adapter |
+
+Generator functions compile to coroutine-based implementations, enabling lazy iteration patterns.
+
+## Decorators
+
+| TypeScript | Luau |
+|------------|------|
+| Decorators | Wrapper/descriptor calls |
+
+Class and method decorators compile to wrapper function calls that modify behavior.
+
+## Labeled Break
+
+| TypeScript | Luau |
+|------------|------|
+| Labeled `break` | Flag variable pattern |
+
+```ts
+outer: for (const i of items) {
+  for (const j of nested) {
+    if (condition) break outer;
+  }
+}
+// Compiles to flag variable pattern to break outer loop
+```

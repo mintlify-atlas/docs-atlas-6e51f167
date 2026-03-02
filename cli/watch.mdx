@@ -1,0 +1,226 @@
+---
+title: rbx-tsx watch
+description: Watch files and recompile on changes
+---
+
+Watch TypeScript/TSX files for changes and automatically recompile them to Luau.
+
+## Usage
+
+```bash
+rbx-tsx watch <path> [options]
+```
+
+### Arguments
+
+<ParamField path="path" type="string" required>
+  Directory or file to watch for changes.
+  
+  **Examples**:
+  - Directory: `src/`
+  - Single file: `src/App.tsx`
+</ParamField>
+
+## Options
+
+<ParamField path="-o, --output" type="string">
+  Output directory
+  
+  **Default**: Parent directory of the watched path
+  
+  **Example**: `-o out/`
+</ParamField>
+
+<ParamField path="--react-path" type="string">
+  Require path for react-lua
+  
+  **Default**: `ReplicatedStorage.Packages.React`
+</ParamField>
+
+<ParamField path="--react-roblox-path" type="string">
+  Require path for react-roblox
+  
+  **Default**: `ReplicatedStorage.Packages.ReactRoblox`
+</ParamField>
+
+<ParamField path="--warn" type="string">
+  Warning level
+  
+  **Default**: `all`
+  
+  **Options**:
+  - `all` - Show all warnings
+  - `unsupported` - Show only unsupported feature warnings
+  - `none` - Suppress all warnings
+</ParamField>
+
+<Info>
+Note: Watch mode does not support `--css`, `--strict`, or `--sourcemap` flags. These are only available in the [`compile`](/cli/compile) command.
+</Info>
+
+## Examples
+
+<CodeGroup>
+
+```bash Watch directory
+rbx-tsx watch src/ -o out/
+```
+
+```bash Watch single file
+rbx-tsx watch src/App.tsx -o out/App.luau
+```
+
+```bash Custom React paths
+rbx-tsx watch src/ -o out/ \
+  --react-path "game.Shared.React" \
+  --react-roblox-path "game.Shared.ReactRoblox"
+```
+
+```bash Suppress warnings
+rbx-tsx watch src/ -o out/ --warn none
+```
+
+</CodeGroup>
+
+## Behavior
+
+The watch command:
+
+1. **Initial compilation** - Compiles all matching files when started
+2. **File watching** - Monitors the specified path for changes
+3. **Incremental recompilation** - Recompiles only changed files
+4. **Error handling** - Continues watching even if compilation fails
+
+### File Events
+
+The watcher responds to:
+
+- **File creation** - New `.ts`, `.tsx`, `.js`, `.jsx` files
+- **File modification** - Changes to existing source files
+- **File deletion** - Removes corresponding `.luau` files
+
+<Warning>
+The watcher ignores:
+- Files in `node_modules/` and `.git/` directories
+- Test files (`.test.*`, `.spec.*`)
+- Type definition files (`.d.ts`)
+</Warning>
+
+## Output
+
+When started:
+
+```bash
+rbx-tsx watch src/ -o out/
+```
+
+**Console output**:
+```
+Watching src/ for changes...
+Compiled -> out/client/App.luau
+Compiled -> out/client/index.client.luau
+Compiled -> out/server/index.server.luau
+```
+
+On file change:
+```
+Compiled -> out/client/App.luau
+```
+
+On error:
+```
+[ERROR] App.tsx:15:10: Unexpected token
+Error compiling src/client/App.tsx: SyntaxError
+```
+
+<Tip>
+Errors don't stop the watcher - fix the error and save the file to trigger recompilation.
+</Tip>
+
+## Use Cases
+
+### Development Workflow
+
+Run watch mode alongside Rojo for live development:
+
+```bash
+# Terminal 1: Watch and compile TypeScript
+rbx-tsx watch src/ -o out/
+
+# Terminal 2: Sync to Roblox Studio
+rojo serve
+```
+
+Changes flow: TypeScript → Luau → Roblox Studio
+
+### Integration with Build Tools
+
+Combine with other watchers using tools like `concurrently`:
+
+```json
+{
+  "scripts": {
+    "dev": "concurrently \"rbx-tsx watch src/ -o out/\" \"rojo serve\""
+  }
+}
+```
+
+```bash
+npm run dev
+```
+
+## Performance
+
+Watch mode is optimized for development:
+
+- **Incremental compilation** - Only changed files are recompiled
+- **Fast startup** - Initial compilation uses parallel processing
+- **Low overhead** - File system watcher uses native OS APIs
+
+**Typical recompilation times**:
+- Single file change: ~50-200ms
+- Multiple file changes: ~100-500ms per file
+
+## Stopping the Watcher
+
+Press `Ctrl+C` to stop watching.
+
+## Differences from Compile
+
+Watch mode differs from [`compile`](/cli/compile):
+
+| Feature | `compile` | `watch` |
+|---------|-----------|----------|
+| One-time compilation | ✓ | ✗ |
+| Continuous watching | ✗ | ✓ |
+| CSS compilation (`--css`) | ✓ | ✗ |
+| Strict mode (`--strict`) | ✓ | ✗ (never exits) |
+| Source maps (`--sourcemap`) | ✓ | ✗ |
+| Exit on error | ✓ | ✗ |
+
+<Tip>
+For production builds, use [`compile`](/cli/compile) with `--strict` to catch all warnings and errors.
+</Tip>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Watcher not detecting changes">
+    - Check that the path exists and is accessible
+    - Ensure the file extension is `.ts`, `.tsx`, `.js`, or `.jsx`
+    - Verify the file is not in `node_modules/` or `.git/`
+    - Try restarting the watcher
+  </Accordion>
+  
+  <Accordion title="High CPU usage">
+    - Exclude large directories with many files
+    - Use more specific watch paths (e.g., `src/client/` instead of `src/`)
+    - Check for infinite recompilation loops (file writes triggering watches)
+  </Accordion>
+  
+  <Accordion title="Output files not updating">
+    - Check the `-o, --output` path is correct
+    - Verify write permissions for the output directory
+    - Look for compilation errors in the console
+  </Accordion>
+</AccordionGroup>

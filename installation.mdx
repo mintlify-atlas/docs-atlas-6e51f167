@@ -1,0 +1,198 @@
+---
+title: Installation
+description: Install rbx-tsx and set up your first Roblox React project
+---
+
+# Installation
+
+Get started with rbx-tsx in seconds. The compiler is distributed as an npm package with zero dependencies required.
+
+## Prerequisites
+
+Before installing rbx-tsx, ensure you have:
+
+- **Node.js** (version 14 or higher)
+- **npm**, **yarn**, **pnpm**, or **bun** package manager
+
+## Install rbx-tsx
+
+Choose your preferred package manager:
+
+<CodeGroup>
+
+```bash npm
+npm install rbx-tsx
+```
+
+```bash yarn
+yarn add rbx-tsx
+```
+
+```bash pnpm
+pnpm add rbx-tsx
+```
+
+```bash bun
+bun add rbx-tsx
+```
+
+</CodeGroup>
+
+<Tip>
+  You can also install rbx-tsx globally with `-g` (npm) or `--global` (yarn/pnpm) to use the CLI from anywhere.
+</Tip>
+
+## Create a New Project
+
+The fastest way to get started is using the `init` command to scaffold a complete Roblox project:
+
+<Steps>
+  <Step title="Initialize the project">
+    Run the init command with your project name:
+
+    ```bash
+    rbx-tsx init my-app
+    ```
+
+    This creates a new directory with:
+    - Starter React components
+    - `tsconfig.json` for TypeScript configuration
+    - `wally.toml` for managing Roblox packages
+    - `default.project.json` for Rojo integration
+  </Step>
+
+  <Step title="Navigate to your project">
+    ```bash
+    cd my-app
+    ```
+  </Step>
+
+  <Step title="Compile your code">
+    Compile TypeScript/TSX to Luau:
+
+    ```bash
+    rbx-tsx compile src/ -o out/
+    ```
+
+    Your compiled Luau files are now in the `out/` directory, ready to use with Rojo.
+  </Step>
+</Steps>
+
+## Install React Dependencies
+
+Your Roblox project needs the react-lua and ReactRoblox packages. These are managed via [Wally](https://wally.run/), the Roblox package manager.
+
+<Steps>
+  <Step title="Install Wally">
+    If you don't have Wally installed:
+
+    ```bash
+    cargo install wally
+    ```
+
+    Or download from [wally.run/install](https://wally.run/install)
+  </Step>
+
+  <Step title="Add dependencies to wally.toml">
+    Your `wally.toml` should include:
+
+    ```toml
+    [dependencies]
+    React = "jsdotlua/react@^17.1.0"
+    ReactRoblox = "jsdotlua/react-roblox@^17.1.0"
+    ```
+  </Step>
+
+  <Step title="Install packages">
+    ```bash
+    wally install
+    ```
+
+    This downloads packages to `Packages/` directory.
+  </Step>
+</Steps>
+
+<Note>
+  The `rbx-tsx init` command creates a `wally.toml` with React dependencies pre-configured.
+</Note>
+
+## Verify Installation
+
+Confirm rbx-tsx is installed correctly:
+
+```bash
+rbx-tsx --version
+```
+
+You should see the installed version number.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Build your first Counter component
+  </Card>
+  <Card title="CLI Reference" icon="terminal" href="/cli/overview">
+    Learn all compiler commands and flags
+  </Card>
+</CardGroup>
+
+## Manual Project Setup
+
+If you prefer to set up a project manually instead of using `rbx-tsx init`:
+
+<Steps>
+  <Step title="Create tsconfig.json">
+    ```json
+    {
+      "compilerOptions": {
+        "jsx": "react",
+        "target": "ESNext",
+        "module": "ESNext",
+        "moduleResolution": "node",
+        "strict": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "types": ["rbx-tsx/types"]
+      },
+      "include": ["src/**/*"]
+    }
+    ```
+  </Step>
+
+  <Step title="Create Rojo project file">
+    Create `default.project.json`:
+
+    ```json
+    {
+      "name": "my-app",
+      "tree": {
+        "$className": "DataModel",
+        "ReplicatedStorage": {
+          "$className": "ReplicatedStorage",
+          "Packages": {
+            "$path": "Packages"
+          },
+          "App": {
+            "$path": "out"
+          }
+        }
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Create source directory">
+    ```bash
+    mkdir src
+    ```
+
+    Add your TypeScript/TSX files to `src/`.
+  </Step>
+
+  <Step title="Compile">
+    ```bash
+    rbx-tsx compile src/ -o out/
+    ```
+  </Step>
+</Steps>

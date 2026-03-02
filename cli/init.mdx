@@ -1,0 +1,446 @@
+---
+title: rbx-tsx init
+description: Scaffold a new rbx-tsx project
+---
+
+Scaffold a new Roblox project with rbx-tsx, React, and Rojo configuration.
+
+## Usage
+
+```bash
+rbx-tsx init [directory] [options]
+```
+
+### Arguments
+
+<ParamField path="directory" type="string">
+  Project directory to create.
+  
+  **Default**: Current directory (`.`)
+  
+  If the directory doesn't exist, it will be created.
+</ParamField>
+
+## Options
+
+<ParamField path="-n, --name" type="string">
+  Project name
+  
+  **Default**: Directory name
+  
+  Used in:
+  - `package.json` name field
+  - `wally.toml` package name
+  - `default.project.json` project name
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+
+```bash Initialize in current directory
+rbx-tsx init
+```
+
+```bash Create new project directory
+rbx-tsx init my-app
+```
+
+```bash Custom project name
+rbx-tsx init my-app --name "My Awesome Game"
+```
+
+```bash Specify name with flag
+rbx-tsx init . -n my-game
+```
+
+</CodeGroup>
+
+## What Gets Created
+
+The `init` command scaffolds a complete Roblox project structure:
+
+### Directory Structure
+
+```
+my-app/
+├── src/
+│   ├── client/
+│   │   ├── index.client.tsx    # Client entry point
+│   │   └── App.tsx              # Root React component
+│   ├── server/
+│   │   └── index.server.ts      # Server entry point
+│   └── shared/                  # Shared code (empty)
+├── out/                         # Compiled Luau output
+├── Packages/                    # Wally packages (after wally install)
+├── package.json                 # npm dependencies
+├── tsconfig.json                # TypeScript configuration
+├── wally.toml                   # Roblox package manager
+└── default.project.json         # Rojo project file
+```
+
+### Files Created
+
+<AccordionGroup>
+  <Accordion title="package.json" icon="npm">
+    npm package configuration with rbx-tsx as a dev dependency:
+    
+    ```json
+    {
+      "name": "my-app",
+      "private": true,
+      "devDependencies": {
+        "rbx-tsx": "^0.1.0"
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="tsconfig.json" icon="typescript">
+    TypeScript compiler configuration:
+    
+    ```json
+    {
+      "compilerOptions": {
+        "target": "ESNext",
+        "lib": ["ESNext"],
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "jsx": "react",
+        "strict": true,
+        "noEmit": true,
+        "skipLibCheck": true
+      },
+      "include": [
+        "src/**/*",
+        "node_modules/rbx-tsx/types/**/*"
+      ]
+    }
+    ```
+    
+    Includes rbx-tsx type definitions for React, Roblox APIs, and services.
+  </Accordion>
+  
+  <Accordion title="wally.toml" icon="box">
+    Wally package manager configuration for Roblox dependencies:
+    
+    ```toml
+    [package]
+    name = "developer/my-app"
+    version = "0.1.0"
+    registry = "https://github.com/UpliftGames/wally-index"
+    realm = "shared"
+    
+    [dependencies]
+    React = "jsdotlua/react@17.1.0"
+    ReactRoblox = "jsdotlua/react-roblox@17.1.0"
+    ```
+    
+    Run `wally install` to download packages to `Packages/` directory.
+  </Accordion>
+  
+  <Accordion title="default.project.json" icon="roblox">
+    Rojo project configuration:
+    
+    ```json
+    {
+      "name": "my-app",
+      "tree": {
+        "$className": "DataModel",
+        "StarterPlayer": {
+          "$className": "StarterPlayer",
+          "StarterPlayerScripts": {
+            "$className": "StarterPlayerScripts",
+            "Client": { "$path": "out/client" }
+          }
+        },
+        "ServerScriptService": {
+          "$className": "ServerScriptService",
+          "Server": { "$path": "out/server" }
+        },
+        "ReplicatedStorage": {
+          "$className": "ReplicatedStorage",
+          "Shared": { "$path": "out/shared" },
+          "Packages": { "$path": "Packages" }
+        }
+      }
+    }
+    ```
+    
+    Maps compiled Luau output to Roblox instance tree.
+  </Accordion>
+  
+  <Accordion title="src/client/index.client.tsx" icon="react">
+    Client-side entry point that mounts the React app:
+    
+    ```tsx
+    import React from "react";
+    import { createRoot } from "react-roblox";
+    import { Players } from "@rbx-services";
+    import App from "./App";
+    
+    const playerGui = Players.LocalPlayer.WaitForChild("PlayerGui");
+    
+    const screenGui = new Instance("ScreenGui");
+    screenGui.Name = "App";
+    screenGui.Parent = playerGui;
+    screenGui.ResetOnSpawn = false;
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling;
+    
+    const root = createRoot(screenGui);
+    root.render(<App />);
+    ```
+  </Accordion>
+  
+  <Accordion title="src/client/App.tsx" icon="react">
+    Root React component with a simple counter:
+    
+    ```tsx
+    import React, { useState } from "react";
+    
+    export default function App() {
+      const [count, setCount] = useState(0);
+    
+      return (
+        <div>
+          <h1>Hello, rbx-tsx!</h1>
+          <p>Count: {count}</p>
+          <button onClick={() => setCount((c: number) => c + 1)}>
+            Click me
+          </button>
+        </div>
+      );
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="src/server/index.server.ts" icon="server">
+    Server-side entry point:
+    
+    ```typescript
+    import { Players } from "@rbx-services";
+    
+    Players.PlayerAdded.Connect((player) => {
+      print(`${player!.Name} joined the game`);
+    });
+    
+    print("Server started!");
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Output
+
+When running:
+
+```bash
+rbx-tsx init my-app
+```
+
+**Console output**:
+```
+Initializing rbx-tsx project: my-app
+
+  create package.json
+  create tsconfig.json
+  create wally.toml
+  create default.project.json
+  create src/client/index.client.tsx
+  create src/client/App.tsx
+  create src/server/index.server.ts
+
+Installing dependencies...
+[bun/npm output]
+
+Installing Roblox packages with wally...
+[wally output]
+
+Done! Next steps:
+
+  rbx-tsx compile src -o out    Compile TSX/TS to Luau
+  rojo serve                    Sync to Roblox Studio
+```
+
+### If Files Already Exist
+
+Existing files are skipped:
+
+```
+  create package.json
+  skip   tsconfig.json (already exists)
+  create wally.toml
+  ...
+```
+
+### If Dependencies Fail
+
+If npm or wally installation fails, instructions are provided:
+
+```
+Could not install npm dependencies. Run 'bun install' or 'npm install' manually.
+
+Could not run wally. Install it from https://github.com/UpliftGames/wally
+Then run: wally install
+```
+
+## Post-Init Steps
+
+### 1. Install Dependencies
+
+If automatic installation failed:
+
+```bash
+cd my-app
+bun install  # or npm install
+wally install
+```
+
+### 2. Compile TypeScript
+
+```bash
+rbx-tsx compile src/ -o out/
+```
+
+Or use watch mode:
+
+```bash
+rbx-tsx watch src/ -o out/
+```
+
+### 3. Open in Roblox Studio
+
+```bash
+rojo serve
+```
+
+Then in Roblox Studio:
+- Go to Plugins → Rojo
+- Click "Connect"
+- Your project will sync to the game
+
+### 4. Start Developing
+
+Edit `src/client/App.tsx` and see changes live in Roblox Studio.
+
+## Installed Packages
+
+### npm (for TypeScript)
+
+- `rbx-tsx` - TypeScript to Luau compiler with type definitions
+
+### Wally (for Roblox)
+
+- `React` (`jsdotlua/react@17.1.0`) - React for Luau
+- `ReactRoblox` (`jsdotlua/react-roblox@17.1.0`) - React renderer for Roblox
+
+Packages are installed to:
+- `node_modules/` (npm)
+- `Packages/` (Wally)
+
+## Customization
+
+After initialization, you can customize:
+
+### Add More Dependencies
+
+**npm** (for type definitions):
+```bash
+npm install --save-dev @rbxts/types
+```
+
+**Wally** (for Roblox packages):
+```toml
+[dependencies]
+Roact = "roblox/roact@1.4.4"
+```
+
+Then run `wally install`.
+
+### Modify Rojo Configuration
+
+Edit `default.project.json` to change:
+- Output paths
+- Instance tree structure
+- Build targets
+
+### Add Build Scripts
+
+Edit `package.json`:
+```json
+{
+  "scripts": {
+    "build": "rbx-tsx compile src/ -o out/",
+    "watch": "rbx-tsx watch src/ -o out/",
+    "check": "rbx-tsx check src/ --strict"
+  }
+}
+```
+
+Run with:
+```bash
+npm run build
+npm run watch
+npm run check
+```
+
+## Requirements
+
+To use the scaffolded project:
+
+<CardGroup cols={2}>
+  <Card title="Node.js" icon="node">
+    Required for npm and running rbx-tsx
+    
+    [Download Node.js](https://nodejs.org/)
+  </Card>
+  
+  <Card title="Wally" icon="package">
+    Required for Roblox package management
+    
+    [Install Wally](https://github.com/UpliftGames/wally)
+  </Card>
+  
+  <Card title="Rojo" icon="roblox">
+    Required for syncing to Roblox Studio
+    
+    [Install Rojo](https://rojo.space/)
+  </Card>
+  
+  <Card title="Roblox Studio" icon="gamepad">
+    Required for testing and development
+    
+    [Download Studio](https://www.roblox.com/create)
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Permission denied">
+    - Run with appropriate permissions
+    - Check directory write access
+    - On Windows, try running terminal as administrator
+  </Accordion>
+  
+  <Accordion title="npm install fails">
+    - Ensure Node.js is installed: `node --version`
+    - Try using `bun install` instead
+    - Check internet connection
+    - Clear npm cache: `npm cache clean --force`
+  </Accordion>
+  
+  <Accordion title="wally install fails">
+    - Ensure Wally is installed: `wally --version`
+    - Install Wally from [GitHub](https://github.com/UpliftGames/wally)
+    - Check `wally.toml` syntax
+  </Accordion>
+  
+  <Accordion title="Directory already exists">
+    The `init` command will:
+    - Use existing directory
+    - Skip files that already exist
+    - Only create missing files
+    
+    To start fresh, remove the directory first.
+  </Accordion>
+</AccordionGroup>

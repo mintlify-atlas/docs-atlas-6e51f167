@@ -1,0 +1,342 @@
+---
+title: Roblox Integration
+description: Seamless Roblox API usage with automatic transformations
+---
+
+rbx-tsx provides seamless integration with the Roblox API, automatically transforming constructor calls, method syntax, and service access.
+
+## Roblox Constructors
+
+Roblox data types automatically transform `new` syntax to `.new()` calls:
+
+| TypeScript | Luau |
+|------------|------|
+| `new Vector3(x, y, z)` | `Vector3.new(x, y, z)` |
+| `new Color3(r, g, b)` | `Color3.new(r, g, b)` |
+| `new UDim2(sx, ox, sy, oy)` | `UDim2.new(sx, ox, sy, oy)` |
+| `new CFrame(x, y, z)` | `CFrame.new(x, y, z)` |
+| `new Instance(className)` | `Instance.new(className)` |
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    const position = new Vector3(0, 10, 0);
+    const color = new Color3(1, 0, 0);
+    const size = new UDim2(1, 0, 1, 0);
+    const part = new Instance("Part");
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    local position = Vector3.new(0, 10, 0)
+    local color = Color3.new(1, 0, 0)
+    local size = UDim2.new(1, 0, 1, 0)
+    local part = Instance.new("Part")
+    ```
+  </Tab>
+</Tabs>
+
+<Info>
+  All Roblox data types (Vector2, Vector3, Color3, UDim, UDim2, CFrame, Region3, etc.) are automatically recognized.
+</Info>
+
+## Instance API
+
+Instance property access and method calls work naturally:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    const frame = new Instance("Frame");
+    frame.Name = "MainFrame";
+    frame.Size = new UDim2(1, 0, 1, 0);
+    frame.BackgroundColor3 = new Color3(1, 1, 1);
+    frame.BackgroundTransparency = 0.5;
+
+    const textLabel = new Instance("TextLabel");
+    textLabel.Name = "Title";
+    textLabel.Text = "Hello World";
+    textLabel.Parent = frame;
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    local frame = Instance.new("Frame")
+    frame.Name = "MainFrame"
+    frame.Size = UDim2.new(1, 0, 1, 0)
+    frame.BackgroundColor3 = Color3.new(1, 1, 1)
+    frame.BackgroundTransparency = 0.5
+
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Name = "Title"
+    textLabel.Text = "Hello World"
+    textLabel.Parent = frame
+    ```
+  </Tab>
+</Tabs>
+
+## Method Calls
+
+Roblox instance methods automatically use colon (`:`) syntax:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    const Players = game.GetService("Players");
+    const player = Players.LocalPlayer;
+    const playerGui = player.WaitForChild("PlayerGui");
+
+    const part = workspace.FindFirstChild("SpawnLocation");
+    if (part && part.IsA("Part")) {
+      part.Destroy();
+    }
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    local Players = game:GetService("Players")
+    local player = Players.LocalPlayer
+    local playerGui = player:WaitForChild("PlayerGui")
+
+    local part = workspace:FindFirstChild("SpawnLocation")
+    if part and part:IsA("Part") then
+        part:Destroy()
+    end
+    ```
+  </Tab>
+</Tabs>
+
+<Info>
+  Common Roblox methods like `WaitForChild`, `FindFirstChild`, `GetChildren`, `Connect`, `IsA`, `Clone`, `Destroy`, etc. automatically use colon syntax.
+</Info>
+
+## Services
+
+The `@rbx-services` import maps to `game:GetService()` calls:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    import { Players, ReplicatedStorage, RunService, Workspace } from "@rbx-services";
+
+    const player = Players.LocalPlayer;
+    const storage = ReplicatedStorage.WaitForChild("Assets");
+
+    RunService.Heartbeat.Connect((dt: number) => {
+      // Game loop
+    });
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    local Players = game:GetService("Players")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local RunService = game:GetService("RunService")
+    local Workspace = game:GetService("Workspace")
+
+    local player = Players.LocalPlayer
+    local storage = ReplicatedStorage:WaitForChild("Assets")
+
+    RunService.Heartbeat:Connect(function(dt: number)
+        -- Game loop
+    end)
+    ```
+  </Tab>
+</Tabs>
+
+### Available Services
+
+All Roblox services are available via `@rbx-services`:
+
+- `Players`
+- `Workspace`
+- `ReplicatedStorage`
+- `ServerStorage`
+- `ReplicatedFirst`
+- `RunService`
+- `TweenService`
+- `UserInputService`
+- `ContextActionService`
+- `HttpService`
+- `DataStoreService`
+- `MarketplaceService`
+- `SoundService`
+- `Lighting`
+- `CollectionService`
+- `PathfindingService`
+- `PhysicsService`
+- `StarterGui`
+- `Teams`
+- And many more...
+
+## Events and Connections
+
+Roblox events use colon syntax for `Connect`:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    import { Players, RunService } from "@rbx-services";
+
+    Players.PlayerAdded.Connect((player: Player) => {
+      console.log(`${player.Name} joined!`);
+    });
+
+    RunService.Heartbeat.Connect((dt: number) => {
+      // Update every frame
+    });
+
+    const part = new Instance("Part");
+    part.Touched.Connect((hit: BasePart) => {
+      console.log("Touched:", hit.Name);
+    });
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    local Players = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+
+    Players.PlayerAdded:Connect(function(player: Player)
+        print(`{player.Name} joined!`)
+    end)
+
+    RunService.Heartbeat:Connect(function(dt: number)
+        -- Update every frame
+    end)
+
+    local part = Instance.new("Part")
+    part.Touched:Connect(function(hit: BasePart)
+        print("Touched:", hit.Name)
+    end)
+    ```
+  </Tab>
+</Tabs>
+
+## Property Change Events
+
+The `GetPropertyChangedSignal` method is automatically recognized:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    const player = Players.LocalPlayer;
+    player.GetPropertyChangedSignal("Health").Connect(() => {
+      console.log("Health changed:", player.Character?.Humanoid?.Health);
+    });
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    local player = Players.LocalPlayer
+    player:GetPropertyChangedSignal("Health"):Connect(function()
+        local _opt0 = if player.Character ~= nil then player.Character.Humanoid else nil
+        print("Health changed:", if _opt0 ~= nil then _opt0.Health else nil)
+    end)
+    ```
+  </Tab>
+</Tabs>
+
+## Complete Example
+
+Here's a full example showing Roblox integration:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    import { Players, ReplicatedStorage, RunService } from "@rbx-services";
+
+    // Create UI hierarchy
+    const screenGui = new Instance("ScreenGui");
+    screenGui.Name = "AppUI";
+    screenGui.ResetOnSpawn = false;
+
+    const frame = new Instance("Frame");
+    frame.Name = "MainFrame";
+    frame.Size = new UDim2(1, 0, 1, 0);
+    frame.Parent = screenGui;
+
+    const textLabel = new Instance("TextLabel");
+    textLabel.Name = "Title";
+    textLabel.Size = new UDim2(1, 0, 0, 50);
+    textLabel.Text = "Hello from rbx-tsx";
+    textLabel.Parent = frame;
+
+    // Attach to PlayerGui
+    const player = Players.LocalPlayer;
+    const playerGui = player.WaitForChild("PlayerGui");
+    screenGui.Parent = playerGui;
+
+    // Heartbeat connection
+    RunService.Heartbeat.Connect((dt: number) => {
+      // Update logic
+    });
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    local Players = game:GetService("Players")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local RunService = game:GetService("RunService")
+
+    -- Create UI hierarchy
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "AppUI"
+    screenGui.ResetOnSpawn = false
+
+    local frame = Instance.new("Frame")
+    frame.Name = "MainFrame"
+    frame.Size = UDim2.new(1, 0, 1, 0)
+    frame.Parent = screenGui
+
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Name = "Title"
+    textLabel.Size = UDim2.new(1, 0, 0, 50)
+    textLabel.Text = "Hello from rbx-tsx"
+    textLabel.Parent = frame
+
+    -- Attach to PlayerGui
+    local player = Players.LocalPlayer
+    local playerGui = player:WaitForChild("PlayerGui")
+    screenGui.Parent = playerGui
+
+    -- Heartbeat connection
+    RunService.Heartbeat:Connect(function(dt: number)
+        -- Update logic
+    end)
+    ```
+  </Tab>
+</Tabs>
+
+## TweenService Integration
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts
+    import { TweenService } from "@rbx-services";
+
+    const part = new Instance("Part");
+    const tweenInfo = new TweenInfo(2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out);
+    const goal = { Position: new Vector3(0, 50, 0) };
+
+    const tween = TweenService.Create(part, tweenInfo, goal);
+    tween.Play();
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    local TweenService = game:GetService("TweenService")
+
+    local part = Instance.new("Part")
+    local tweenInfo = TweenInfo.new(2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local goal = { Position = Vector3.new(0, 50, 0) }
+
+    local tween = TweenService:Create(part, tweenInfo, goal)
+    tween:Play()
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  `TweenInfo` and other Roblox data type constructors are automatically recognized and transformed.
+</Note>

@@ -1,0 +1,223 @@
+---
+title: JSX and React Support
+description: Write React components with TypeScript/TSX, compile to react-lua for Roblox
+---
+
+rbx-tsx provides first-class support for JSX and React, compiling your TypeScript components directly to `React.createElement()` calls for [react-lua](https://github.com/jsdotlua/react-lua).
+
+## React Hooks
+
+All standard React hooks are supported:
+
+- `useState`
+- `useEffect`
+- `useCallback`
+- `useContext`
+- `useRef`
+- `useMemo`
+- `useReducer`
+- `useImperativeHandle`
+- `useLayoutEffect`
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```tsx
+    import React, { useState, useCallback } from "react";
+
+    interface CounterProps {
+      label: string;
+      initialCount?: number;
+    }
+
+    export default function Counter({ label, initialCount = 0 }: CounterProps) {
+      const [count, setCount] = useState(initialCount);
+
+      const increment = useCallback(() => {
+        setCount((c) => c + 1);
+      }, []);
+
+      return (
+        <div className="counter">
+          <h1>{label}</h1>
+          <span>Count: {count}</span>
+          <button onClick={increment}>+</button>
+        </div>
+      );
+    }
+    ```
+  </Tab>
+  <Tab title="Luau">
+    ```lua
+    local React = require(game:GetService("ReplicatedStorage").Packages.React)
+    local useState = React.useState
+    local useCallback = React.useCallback
+
+    type CounterProps = {
+        label: string,
+        initialCount: number?,
+    }
+
+    local function Counter(props: CounterProps)
+        local label = props.label
+        local initialCount = if props.initialCount ~= nil then props.initialCount else 0
+        local count, setCount = useState(initialCount)
+        local increment = useCallback(function()
+            setCount(function(c) return c + 1 end)
+        end, {})
+
+        return React.createElement("Frame", { [React.Tag] = "counter" }, {
+            H1 = React.createElement("TextLabel", { Text = label }),
+            Span = React.createElement("TextLabel", { Text = `Count: {count}` }),
+            Button = React.createElement("TextButton", {
+                [React.Event.Activated] = increment,
+                Text = "+",
+            }),
+        })
+    end
+
+    return Counter
+    ```
+  </Tab>
+</Tabs>
+
+## JSX Elements
+
+JSX elements compile to `React.createElement()` calls. HTML elements are automatically mapped to Roblox GUI classes.
+
+### Element Mapping
+
+| JSX Element | Roblox Class |
+|-------------|-------------|
+| `<div>` | `Frame` |
+| `<span>`, `<p>`, `<h1>`-`<h6>`, `<label>` | `TextLabel` |
+| `<button>`, `<a>` | `TextButton` |
+| `<input>`, `<textarea>` | `TextBox` |
+| `<img>` | `ImageLabel` |
+| `<canvas>` | `ViewportFrame` |
+| `<video>` | `VideoFrame` |
+| `<scroll>` | `ScrollingFrame` |
+
+<Info>
+  You can also use Roblox class names directly (e.g., `<Frame>`, `<TextLabel>`) for full control.
+</Info>
+
+### Semantic HTML Elements
+
+Semantic HTML elements map to `Frame` with appropriate default styles:
+
+| JSX Element | Behavior |
+|-------------|----------|
+| `<nav>`, `<header>`, `<footer>`, `<main>`, `<section>`, `<article>`, `<aside>`, `<form>` | `Frame` - Transparent, auto-height, full-width |
+| `<ul>`, `<ol>` | `Frame` - Vertical `UIListLayout` auto-injected |
+| `<li>` | `Frame` - Transparent, auto-height, full-width |
+| `<dialog>` | `Frame` - Centered (AnchorPoint + Position) |
+
+### Table Elements
+
+| JSX Element | Roblox Class | Behavior |
+|-------------|--------------|----------|
+| `<table>`, `<thead>`, `<tbody>`, `<tfoot>` | `Frame` | Vertical `UIListLayout` auto-injected |
+| `<tr>` | `Frame` | Horizontal `UIListLayout` auto-injected |
+| `<td>`, `<th>` | `TextLabel` | Transparent, auto-sized |
+
+## Props Mapping
+
+JSX props are transformed to their Roblox equivalents:
+
+| JSX Prop | Luau Equivalent |
+|----------|----------------|
+| `className="card"` | `[React.Tag] = "card"` |
+| `id="sidebar"` | `Name = "sidebar"` |
+| `onClick={fn}` | `[React.Event.Activated] = fn` |
+| `onChange={fn}` | `[React.Change.Text] = fn` |
+| `ref={r}` | `ref = r` |
+| `key={k}` | Table key in children |
+| Roblox-native props | Passthrough |
+
+## JSX Features
+
+### Fragments
+
+```tsx
+import React from "react";
+
+function List() {
+  return (
+    <>
+      <div>Item 1</div>
+      <div>Item 2</div>
+      <div>Item 3</div>
+    </>
+  );
+}
+```
+
+### Spread Attributes
+
+```tsx
+const props = { Size: new UDim2(1, 0, 1, 0), BackgroundColor3: Color3.new(1, 1, 1) };
+
+return <Frame {...props} />;
+```
+
+### Conditional Rendering
+
+```tsx
+return (
+  <div>
+    {isVisible && <span>Visible</span>}
+    {count > 0 ? <span>Items: {count}</span> : <span>Empty</span>}
+  </div>
+);
+```
+
+### Array Mapping
+
+```tsx
+const items = ["Apple", "Banana", "Orange"];
+
+return (
+  <div>
+    {items.map((item, i) => (
+      <div key={i}>{item}</div>
+    ))}
+  </div>
+);
+```
+
+## Portals
+
+Use `ReactRoblox.createPortal` to render content into a different part of the Roblox hierarchy:
+
+```tsx
+import React from "react";
+import ReactRoblox from "react-roblox";
+
+function Modal({ target, children }) {
+  return ReactRoblox.createPortal(children, target);
+}
+```
+
+<Note>
+  Portals require `ReactRoblox` from the react-lua ecosystem. Configure the import path with `--react-roblox-path` if needed.
+</Note>
+
+## Key and Ref Handling
+
+```tsx
+import React, { useRef } from "react";
+
+function Component() {
+  const frameRef = useRef<Frame>(null);
+
+  return (
+    <div>
+      {["a", "b", "c"].map((key) => (
+        <div key={key} ref={key === "a" ? frameRef : undefined}>
+          {key}
+        </div>
+      ))}
+    </div>
+  );
+}
+```

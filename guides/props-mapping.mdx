@@ -1,0 +1,218 @@
+---
+title: Props Mapping
+description: TSX props to Luau props mapping (className, onClick, etc)
+---
+
+rbx-tsx translates familiar React/HTML props into their Roblox equivalents, allowing you to write idiomatic React code while targeting react-lua.
+
+## Common Props
+
+| TSX Prop | Luau Output | Notes |
+|----------|-------------|-------|
+| `className="card"` | `[React.Tag] = "card"` | CSS class identifier |
+| `id="sidebar"` | `Name = "sidebar"` | Instance name |
+| `ref={r}` | `ref = r` | React ref passthrough |
+| `key={k}` | Table key in children | React list key |
+
+## Event Props
+
+| TSX Prop | Luau Output | Roblox Event |
+|----------|-------------|---------------|
+| `onClick={fn}` | `[React.Event.Activated] = fn` | `Activated` |
+| `onMouseEnter={fn}` | `[React.Event.MouseEnter] = fn` | `MouseEnter` |
+| `onMouseLeave={fn}` | `[React.Event.MouseLeave] = fn` | `MouseLeave` |
+| `onFocus={fn}` | `[React.Event.Focused] = fn` | `Focused` |
+| `onBlur={fn}` | `[React.Event.FocusLost] = fn` | `FocusLost` |
+| `onSubmit={fn}` | `[React.Event.FocusLost] = fn` | `FocusLost` (for forms) |
+
+### Change Events
+
+| TSX Prop | Luau Output | Roblox Property |
+|----------|-------------|------------------|
+| `onChange={fn}` | `[React.Change.Text] = fn` | Fires when `Text` changes |
+| `onScroll={fn}` | `[React.Change.CanvasPosition] = fn` | Fires when `CanvasPosition` changes |
+
+## Event Handler Parameters
+
+Some event handlers receive remapped parameters:
+
+```tsx
+// onClick receives InputObject
+<button onClick={(inputObject) => {
+  print(inputObject.UserInputType);
+}}>Click</button>
+
+// Luau:
+[React.Event.Activated] = function(_rbx, inputObject, _clickCount)
+  print(inputObject.UserInputType)
+end
+```
+
+```tsx
+// onChange receives the element itself
+<input onChange={(rbx) => {
+  print(rbx.Text);
+}} />
+
+// Luau:
+[React.Change.Text] = function(rbx)
+  print(rbx.Text)
+end
+```
+
+<Warning>
+Event signatures differ from browser events. Check the [Roblox API documentation](https://create.roblox.com/docs/reference/engine) for specific event parameter details.
+</Warning>
+
+## Unsupported Events
+
+The following event props are not supported in Roblox and will produce warnings:
+
+- `onDoubleClick`, `onContextMenu`
+- `onKeyDown`, `onKeyUp`, `onKeyPress`
+- `onDrag`, `onDragStart`, `onDragEnd`, `onDrop`
+- `onTouchStart`, `onTouchEnd`, `onTouchMove`
+- `onWheel`
+- `onCopy`, `onCut`, `onPaste`
+- `onAnimationStart`, `onAnimationEnd`, `onTransitionEnd`
+- `onLoad`, `onError`
+
+## Roblox-Native Props
+
+All Roblox GUI properties pass through unchanged:
+
+```tsx
+<Frame
+  Size={new UDim2(0, 200, 0, 100)}
+  Position={new UDim2(0.5, 0, 0.5, 0)}
+  AnchorPoint={new Vector2(0.5, 0.5)}
+  BackgroundColor3={new Color3(1, 0, 0)}
+  BorderSizePixel={0}
+>
+  {children}
+</Frame>
+```
+
+**Compiled:**
+
+```lua
+React.createElement("Frame", {
+  Size = UDim2.new(0, 200, 0, 100),
+  Position = UDim2.new(0.5, 0, 0.5, 0),
+  AnchorPoint = Vector2.new(0.5, 0.5),
+  BackgroundColor3 = Color3.new(1, 0, 0),
+  BorderSizePixel = 0,
+}, children)
+```
+
+## Style Prop
+
+The `style` prop is not transformed automatically. Use Roblox-native properties instead:
+
+```tsx
+// ❌ Not supported
+<div style={{ width: 100, height: 100 }} />
+
+// ✅ Use Roblox properties
+<div Size={new UDim2(0, 100, 0, 100)} />
+```
+
+For CSS-like styling, use [CSS modules](/guides/css-support) with the `--css` flag.
+
+## Text Content
+
+Text children are automatically converted to the `Text` property for text elements:
+
+```tsx
+<button>Click me</button>
+// Becomes: <TextButton Text="Click me" />
+
+<h1>Title</h1>
+// Becomes: <TextLabel Text="Title" />
+```
+
+**Expression interpolation:**
+
+```tsx
+<span>Count: {count}</span>
+// Becomes:
+React.createElement("TextLabel", { Text = `Count: {count}` })
+```
+
+## Children Prop
+
+The `children` prop works the same as React:
+
+```tsx
+function Container({ children }: { children: React.ReactNode }) {
+  return <div className="container">{children}</div>;
+}
+```
+
+**Compiled:**
+
+```lua
+type ContainerProps = {
+  children: React_ReactNode,
+}
+
+local function Container(props: ContainerProps)
+  return React.createElement("Frame", { [React.Tag] = "container" }, props.children)
+end
+```
+
+## Example: Counter Component
+
+**Input TSX:**
+
+```tsx
+import React, { useState } from "react";
+
+interface CounterProps {
+  label: string;
+  initialCount?: number;
+}
+
+export default function Counter({ label, initialCount = 0 }: CounterProps) {
+  const [count, setCount] = useState(initialCount);
+
+  return (
+    <div className="counter">
+      <h1>{label}</h1>
+      <span>Count: {count}</span>
+      <button onClick={() => setCount((c) => c + 1)}>+</button>
+    </div>
+  );
+}
+```
+
+**Output Luau:**
+
+```lua
+local React = require(game:GetService("ReplicatedStorage").Packages.React)
+local useState = React.useState
+
+type CounterProps = {
+  label: string,
+  initialCount: number?,
+}
+
+local function Counter(props: CounterProps)
+  local label = props.label
+  local initialCount = if props.initialCount ~= nil then props.initialCount else 0
+  local count, setCount = useState(initialCount)
+
+  return React.createElement("Frame", { [React.Tag] = "counter" }, {
+    H1 = React.createElement("TextLabel", { Text = label }),
+    Span = React.createElement("TextLabel", { Text = `Count: {count}` }),
+    Button = React.createElement("TextButton", {
+      [React.Event.Activated] = function()
+        setCount(function(c) return c + 1 end)
+      end,
+      Text = "+",
+    }),
+  })
+end
+
+return Counter
+```

@@ -1,0 +1,303 @@
+---
+title: CSS Support
+description: CSS compilation with --css flag, css.d.ts generation
+---
+
+rbx-tsx includes built-in CSS support via the companion `rbx-css` compiler. Enable it with the `--css` flag to compile CSS files alongside your TSX files.
+
+## Installation
+
+Install both `rbx-tsx` and `rbx-css`:
+
+```bash
+npm install rbx-tsx rbx-css
+```
+
+## Compilation
+
+Use the `--css` flag when compiling:
+
+```bash
+rbx-tsx compile src/ -o out/ --css
+```
+
+This will:
+1. Compile all `.css` files to `.style.luau` modules
+2. Generate CSS manifest files for class name tracking
+3. Create a `css.d.ts` type definition file for TypeScript support
+
+## CSS Module Imports
+
+### Basic Usage
+
+**Card.module.css:**
+```css
+.container {
+  background-color: #ffffff;
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333333;
+}
+```
+
+**Card.tsx:**
+```tsx
+import React from "react";
+import styles from "./Card.module.css";
+
+export default function Card({ title }: { title: string }) {
+  return (
+    <div className={styles.container}>
+      <h1 className={styles.title}>{title}</h1>
+    </div>
+  );
+}
+```
+
+**Compiled Luau:**
+```lua
+local React = require(game:GetService("ReplicatedStorage").Packages.React)
+local styles = require(script.Parent["Card.style"])
+
+type CardProps = { title: string }
+
+local function Card(props: CardProps)
+  return React.createElement("Frame", { [React.Tag] = styles.container }, {
+    H1 = React.createElement("TextLabel", {
+      [React.Tag] = styles.title,
+      Text = props.title,
+    }),
+  })
+end
+
+return Card
+```
+
+### Side-Effect CSS Imports
+
+Import CSS files without binding to a variable for global styles:
+
+```tsx
+import "./global.css";
+import React from "react";
+
+export default function App() {
+  return <div>App</div>;
+}
+```
+
+The stylesheet will be automatically attached to the root container when using `createRoot`.
+
+## File Naming
+
+| CSS File | Compiled Output | Type |
+|----------|-----------------|------|
+| `Card.css` | `Card.style.luau` | Side-effect stylesheet |
+| `Card.module.css` | `Card.style.luau` | CSS module (class names) |
+| `global.css` | `global.style.luau` | Side-effect stylesheet |
+
+<Note>
+Both `.css` and `.module.css` compile to `.style.luau`. The `.module.css` convention is for TypeScript type checking.
+</Note>
+
+## CSS Manifest
+
+When compiling with `--css --manifest`, rbx-css generates a `.style.manifest.json` file for each CSS file:
+
+**Card.style.manifest.json:**
+```json
+{
+  "classes": {
+    "container": "Card_container_a3f2",
+    "title": "Card_title_b8e1"
+  }
+}
+```
+
+rbx-tsx merges all manifests and uses them to resolve `className` props.
+
+## TypeScript Support (css.d.ts)
+
+The first time you compile with `--css`, rbx-tsx generates a `css.d.ts` file in your source directory:
+
+**src/css.d.ts:**
+```typescript
+declare module "*.css" {
+  const createStyleSheet: () => Instance;
+  export default createStyleSheet;
+}
+```
+
+This provides TypeScript autocomplete for CSS imports.
+
+<Warning>
+Do not delete `css.d.ts` — it's required for TypeScript to recognize `.css` imports. Add it to your version control.
+</Warning>
+
+## Watch Mode
+
+CSS compilation works in watch mode:
+
+```bash
+rbx-tsx watch src/ -o out/ --css
+```
+
+Changes to `.css` files will trigger recompilation.
+
+## Example: Styled Counter
+
+**Counter.module.css:**
+```css
+.counter {
+  background-color: #f0f0f0;
+  padding: 20px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.title {
+  font-size: 32px;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.display {
+  font-size: 48px;
+  font-weight: bold;
+  color: #007bff;
+  margin: 20px 0;
+}
+
+.button {
+  background-color: #007bff;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+  font-size: 18px;
+}
+
+.button:hover {
+  background-color: #0056b3;
+}
+```
+
+**Counter.tsx:**
+```tsx
+import React, { useState } from "react";
+import styles from "./Counter.module.css";
+
+export default function Counter() {
+  const [count, setCount] = useState(0);
+
+  return (
+    <div className={styles.counter}>
+      <h1 className={styles.title}>Counter</h1>
+      <span className={styles.display}>{count}</span>
+      <button
+        className={styles.button}
+        onClick={() => setCount(count + 1)}
+      >
+        Increment
+      </button>
+    </div>
+  );
+}
+```
+
+**Compiled Counter.luau:**
+```lua
+local React = require(game:GetService("ReplicatedStorage").Packages.React)
+local useState = React.useState
+local styles = require(script.Parent["Counter.style"])
+
+local function Counter()
+  local count, setCount = useState(0)
+
+  return React.createElement("Frame", { [React.Tag] = styles.counter }, {
+    H1 = React.createElement("TextLabel", {
+      [React.Tag] = styles.title,
+      Text = "Counter",
+    }),
+    Span = React.createElement("TextLabel", {
+      [React.Tag] = styles.display,
+      Text = tostring(count),
+    }),
+    Button = React.createElement("TextButton", {
+      [React.Tag] = styles.button,
+      [React.Event.Activated] = function()
+        setCount(count + 1)
+      end,
+      Text = "Increment",
+    }),
+  })
+end
+
+return Counter
+```
+
+## CSS Syntax
+
+rbx-css supports a subset of CSS properties that map to Roblox GUI properties:
+
+- Layout: `width`, `height`, `padding`, `margin`
+- Position: `position`, `top`, `left`, `right`, `bottom`
+- Background: `background-color`, `background-image`
+- Border: `border-radius`, `border-color`, `border-width`
+- Text: `font-size`, `font-weight`, `color`, `text-align`
+- Display: `display` (flex, none)
+- Flex: `flex-direction`, `justify-content`, `align-items`, `flex-wrap`
+
+See [rbx-css documentation](https://github.com/rbx-css) for the full property mapping.
+
+## Limitations
+
+<Warning>
+**Known limitations:**
+- Pseudo-selectors (`:hover`, `:active`) are parsed but not fully supported in Roblox
+- Media queries are not supported
+- CSS animations and transitions require Roblox TweenService integration
+- CSS variables (`--custom-property`) are not supported
+</Warning>
+
+## Troubleshooting
+
+### "Could not compile CSS" warning
+
+Ensure `rbx-css` is installed:
+
+```bash
+npm install rbx-css
+```
+
+### CSS classes not resolving
+
+Make sure you're using the `--css` flag:
+
+```bash
+rbx-tsx compile src/ -o out/ --css
+```
+
+### TypeScript errors on `.css` imports
+
+Generate the `css.d.ts` file:
+
+```bash
+rbx-tsx compile src/ -o out/ --css
+```
+
+Or create it manually:
+
+```typescript
+// src/css.d.ts
+declare module "*.css" {
+  const createStyleSheet: () => Instance;
+  export default createStyleSheet;
+}
+```
