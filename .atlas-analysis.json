@@ -1,0 +1,85 @@
+{
+  "projectType": "cli-tool",
+  "projectName": "rbx-tsx",
+  "projectDescription": "TSX/TypeScript to Luau compiler targeting react-lua for Roblox",
+  "theme": "aspen",
+  "primaryColor": "#3B82F6",
+  "lightColor": "#60A5FA",
+  "darkColor": "#2563EB",
+  "navigation": {
+    "groups": [
+      {
+        "group": "Get Started",
+        "pages": [
+          "introduction",
+          "installation",
+          "quickstart"
+        ]
+      },
+      {
+        "group": "CLI Reference",
+        "pages": [
+          "cli/overview",
+          "cli/compile",
+          "cli/watch",
+          "cli/check",
+          "cli/init"
+        ]
+      },
+      {
+        "group": "Features",
+        "pages": [
+          "features/jsx-react",
+          "features/language-transforms",
+          "features/api-transforms",
+          "features/type-system",
+          "features/roblox-integration"
+        ]
+      },
+      {
+        "group": "Guides",
+        "pages": [
+          "guides/element-mapping",
+          "guides/props-mapping",
+          "guides/module-system",
+          "guides/css-support",
+          "guides/rojo-integration"
+        ]
+      },
+      {
+        "group": "Examples",
+        "pages": [
+          "examples/react-components",
+          "examples/async-await",
+          "examples/decorators",
+          "examples/generators",
+          "examples/optional-chaining",
+          "examples/regex",
+          "examples/roblox-services",
+          "examples/type-annotations"
+        ]
+      },
+      {
+        "group": "Comparison",
+        "pages": [
+          "comparison/roblox-ts"
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "TSX/JSX compilation to Luau with react-lua",
+    "Full TypeScript type preservation in output",
+    "HTML element mapping to Roblox GUI classes",
+    "Zero runtime dependencies",
+    "Built-in CSS support via rbx-css",
+    "Watch mode and project scaffolding",
+    "Rojo project integration"
+  ],
+  "publicApiSurface": [
+    "rbx-tsx compile <input> [-o <output>] [--css] [--react-path <path>] [--strict] [--sourcemap]",
+    "rbx-tsx watch <path> [-o <output>] [--react-path <path>]",
+    "rbx-tsx check <input> [--strict]",
+    "rbx-tsx init [directory] [-n <name>]"
+  ]
+}
